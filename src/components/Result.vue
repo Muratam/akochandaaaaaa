@@ -2,11 +2,19 @@
   <b-container fluid class="p-3">
     <!-- 成功時 -->
     <template v-if="result && result.success">
-      <!-- 結果の概要 -->
-      <b-row>
-        <b-col> {{ syanten }} </b-col>
-      </b-row>
-
+      <b-form-group
+        label-cols="1"
+        content-cols="11"
+        :label="syanten"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <HandAndMeldedBlocks
+          :hand_tiles="hand_tiles"
+          :melded_blocks="[]"
+          size="lg"
+        />
+      </b-form-group>
       <!-- 打牌一覧 -->
       <b-row class="mt-2">
         <b-col>
@@ -86,22 +94,16 @@
 
 <script>
 /*eslint-disable */
+import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
 import TileImage from "@/components/mahjong/TileImage.vue";
-import {
-  TileOrder,
-  TilePriority,
-  Tile2String,
-  SyantenType2String,
-  Hand2String,
-  Meld2String,
-  DoraHyozi2Dora,
-} from "@/mahjong.js";
+import { TileOrder, TilePriority, Tile2String } from "@/mahjong.js";
 import LineChart from "@/components/LineChart.js";
 
 export default {
   name: "Result",
 
   components: {
+    HandAndMeldedBlocks,
     TileImage,
     LineChart,
   },
@@ -494,7 +496,7 @@ export default {
     },
   },
 
-  props: ["result"],
+  props: ["result", "hand_tiles"],
 
   watch: {
     result: function (result) {

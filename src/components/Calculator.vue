@@ -52,22 +52,11 @@
               <p>計算中</p>
             </template>
           </b-overlay>
-          <b-form-group
-            v-if="!is_calculating && turn > 1"
-            label-cols="1"
-            content-cols="11"
-            label="前の手牌"
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <HandAndMeldedBlocks
-              v-if="!is_calculating"
-              :hand_tiles="pre_hand_tiles"
-              :melded_blocks="[]"
-              size="lg"
-            />
-          </b-form-group>
-          <Result v-if="!is_calculating" :result="result" />
+          <Result
+            v-if="!is_calculating"
+            :result="result"
+            :hand_tiles="pre_hand_tiles"
+          />
         </b-col>
       </b-row>
     </b-tab>
