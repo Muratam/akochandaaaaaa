@@ -29,21 +29,21 @@ export default {
   name: "HandAndMeldedBlocks",
   components: {
     TileButton,
-    BlockButton
+    BlockButton,
   },
   props: {
     hand_tiles: {
       type: Array,
-      required: true
+      required: true,
     },
     melded_blocks: {
       type: Array,
-      required: true
+      required: true,
     },
     size: {
       type: String,
-      default: "sm"
-    }
+      default: "sm",
+    },
   },
   methods: {
     remove_tile(tile) {
@@ -52,22 +52,16 @@ export default {
 
     remove_block(block) {
       this.$emit("remove-block", block);
-    }
-  }
+    },
+  },
 };
 </script>
 
 <style scoped>
 .hand_and_melded_blocks {
-  display: flex;
-  flex-wrap: wrap;
-  box-shadow: 0 5px 2px -2px rgba(0, 0, 0, 0.5);
-  height: 80px;
 }
 
 .hand_and_melded_blocks > * {
-  align-self: flex-end;
-  margin-right: 10px;
 }
 
 .hand_tiles {
