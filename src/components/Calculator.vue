@@ -1,6 +1,10 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tabIndex">
     <b-tab title="試す" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+      <b-button class="mr-2" variant="primary" @click="set_random_hand"
+        >はじめから
+      </b-button>
+      <br />
       場風：{{ tile2String(bakaze) }} / 自風：{{ tile2String(zikaze) }} /
       現在の巡目： {{ turn }}
       <br />
@@ -15,20 +19,10 @@
         :melded_blocks="melded_blocks"
         size="lg"
       />
+      <br />
       <b-row class="mb-3">
         <b-col>
           <b-overlay :show="is_calculating" rounded="sm">
-            <b-button class="mr-2" variant="primary" @click="set_random_hand"
-              >はじめから
-            </b-button>
-            <b-button
-              class="mr-2"
-              variant="primary"
-              @click="calculate"
-              :disabled="n_hand_tiles < 13 || is_calculating"
-              >計算を実行
-            </b-button>
-
             <template #overlay>
               <b-icon
                 icon="three-dots"
@@ -38,9 +32,16 @@
               <p>計算中</p>
             </template>
           </b-overlay>
+          <hr v-if="!is_calculating" />
+          <HandAndMeldedBlocks
+            v-if="!is_calculating"
+            :hand_tiles="pre_hand_tiles"
+            :melded_blocks="[]"
+            size="lg"
+          />
+          <Result v-if="!is_calculating" :result="result" />
         </b-col>
       </b-row>
-      <Result :result="result" />
     </b-tab>
     <b-tab title="設定" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <!-- 設定入力欄 -->
@@ -184,6 +185,7 @@ export default {
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
       hand_tiles: [], // 手牌
+      pre_hand_tiles: [], // 一手前の手牌
       melded_blocks: [], // 副露ブロックの一覧
       result: null, // 結果
       is_calculating: false,
@@ -243,28 +245,20 @@ export default {
 
   computed: {
     // 手牌の枚数
-    tenhoURL: function () {
+    tenhoURL() {
       return "https://tenhou.net/2/?q=" + Hand2TenhoString(this.hand_tiles);
     },
-
-    tumoProbStr: function () {
-      let hand_tiles = this.hand_tiles
-        .map((x) => Tile2TumoProbString.get(x))
-        .join(",");
-
-      return hand_tiles;
+    tumoProbStr() {
+      return this.hand_tiles.map((x) => Tile2TumoProbString.get(x)).join(",");
     },
-
     // 手牌の枚数
-    n_hand_tiles: function () {
+    n_hand_tiles() {
       return this.hand_tiles.length + this.melded_blocks.length * 3;
     },
-
     // 各牌の残り枚数
-    tile_counts: function () {
+    tile_counts() {
       // 初期化する。
       let counts = Array(34).fill(4).concat([1, 1, 1]);
-
       let minus_tile = (tile) => {
         counts[tile] -= 1;
         // 赤ドラの場合は対応する牌も減らす。
@@ -272,14 +266,12 @@ export default {
         else if (tile == Tile.AkaPinzu5) counts[Tile.Pinzu5] -= 1;
         else if (tile == Tile.AkaSozu5) counts[Tile.Sozu5] -= 1;
       };
-
       // ドラ表示牌を除く
       this.dora_indicators.forEach(minus_tile);
       // 手牌を除く
       this.hand_tiles.forEach(minus_tile);
       // 副露ブロックを除く
       this.melded_blocks.forEach((block) => block.tiles.forEach(minus_tile));
-
       return counts;
     },
   },
@@ -295,7 +287,6 @@ export default {
         return "text-dark";
       }
     },
-
     calculate() {
       this.is_calculating = true;
       this.result = null;
@@ -317,8 +308,9 @@ export default {
 
     /// 手牌を初期化する。
     clear_hand() {
-      this.hand_tiles = [];
-      this.melded_blocks = [];
+      this.hand_tiles.splice(0, this.hand_tiles.length);
+      this.pre_hand_tiles.splice(0, this.pre_hand_tiles.length);
+      this.melded_blocks.splice(0, this.melded_blocks.length);
       this.dora_indicators.splice(0, this.dora_indicators.length);
       this.kawa_indicators.splice(0, this.kawa_indicators.length);
       this.result = null;
@@ -339,6 +331,11 @@ export default {
 
     /// 牌を手牌から次のにする
     next_tile(tile) {
+      this.pre_hand_tiles.splice(0, this.pre_hand_tiles.length);
+      for (let hand of this.hand_tiles) {
+        this.pre_hand_tiles.push(hand);
+      }
+      this.calculate();
       let i = this.hand_tiles.indexOf(tile);
       if (i > -1) this.hand_tiles.splice(i, 1);
       this.kawa_indicators.push(tile);
