@@ -1,11 +1,12 @@
 <template>
-  <b-container fluid class="p-3">
+  <b-container fluid class="p-0">
     <!-- 成功時 -->
     <template v-if="result && result.success">
+      <h3>Score</h3>
       <b-form-group
-        label-cols="1"
-        content-cols="11"
-        :label="syanten"
+        label-cols="0"
+        content-cols="12"
+        label=""
         label-align="right"
         class="kawa_indicators p-0"
       >

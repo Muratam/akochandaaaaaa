@@ -4,9 +4,50 @@
       <b-row class="mb-3">
         <b-col>
           <b-form-group
-            label-cols="1"
-            content-cols="11"
-            label="手牌"
+            label-cols="0"
+            content-cols="12"
+            label=""
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              ドラ表示牌
+              <TileImage
+                v-for="(tile, i) in dora_indicators"
+                :key="i"
+                :tile="tile"
+              />
+            </span>
+            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              ツモ
+              <TileImage
+                v-if="tsumo_indicators.length > 0"
+                :tile="tsumo_indicators[tsumo_indicators.length - 1]"
+              />
+              <TileImage v-if="tsumo_indicators.length <= 0" :tile="-1" />
+            </span>
+            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              捨牌
+              <TileImage
+                v-if="kawa_indicators.length > 0"
+                :tile="kawa_indicators[kawa_indicators.length - 1]"
+              />
+              <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
+            </span>
+            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              {{ turn }} 巡目 </span
+            ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              {{ shanten }} </span
+            ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              {{ tile2String(bakaze) }}場 </span
+            ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
+              {{ tile2String(zikaze) }}家
+            </span>
+          </b-form-group>
+          <b-form-group
+            label-cols="0"
+            content-cols="12"
+            label=""
             label-align="right"
             class="kawa_indicators p-0"
           >
@@ -17,24 +58,7 @@
               size="lg"
             />
           </b-form-group>
-          <b-form-group
-            label-cols="1"
-            content-cols="11"
-            label="情報"
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <legend class="col-form-label">
-              {{ turn }} 巡目 / {{ shanten }} / {{ tile2String(bakaze) }}場 /
-              {{ tile2String(zikaze) }}家
-            </legend>
-          </b-form-group>
-          <DoraTiles :dora_indicators="dora_indicators" />
-          <KawaTiles
-            :kawa_indicators="tsumo_indicators"
-            :label_name="'ツモ牌'"
-          />
-          <KawaTiles :kawa_indicators="kawa_indicators" :label_name="'河'" />
+
           <hr v-if="!is_calculating" />
           <br v-if="is_calculating" />
           <br v-if="is_calculating" />
@@ -62,6 +86,17 @@
           <b-form-group
             label-cols="1"
             content-cols="11"
+            label="シード"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <legend class="col-form-label">
+              {{ seed }}
+            </legend>
+          </b-form-group>
+          <b-form-group
+            label-cols="1"
+            content-cols="11"
             label="手牌"
             label-align="right"
             class="kawa_indicators p-0"
@@ -71,17 +106,6 @@
               :melded_blocks="melded_blocks"
               size="lg"
             />
-          </b-form-group>
-          <b-form-group
-            label-cols="1"
-            content-cols="11"
-            label="シード"
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <legend class="col-form-label">
-              {{ seed }}
-            </legend>
           </b-form-group>
           <hr />
           <b-form-group
@@ -259,8 +283,7 @@ import {
 } from "@/mahjong.js";
 
 import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
-import DoraTiles from "@/components/mahjong/DoraTiles.vue";
-import KawaTiles from "@/components/mahjong/KawaTiles.vue";
+import TileImage from "@/components/mahjong/TileImage.vue";
 import Result from "./Result.vue";
 
 class XorShift {
@@ -302,9 +325,8 @@ export default {
   name: "Calculator",
   components: {
     HandAndMeldedBlocks,
-    DoraTiles,
-    KawaTiles,
     Result,
+    TileImage,
   },
   data() {
     return {
