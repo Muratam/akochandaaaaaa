@@ -402,7 +402,7 @@ export default {
 
       // 牌山を作成する。
       yama = [];
-      for (let i = 0; i < 27; ++i) {
+      for (let i = 0; i < 34; ++i) {
         yama = yama.concat(Array(4).fill(i));
       }
       yama[Tile.Manzu5 * 4] = Tile.AkaManzu5;
