@@ -1,41 +1,35 @@
 <template>
-  <div class="dora_indicators">
-    <TileButton
-      v-on:add-tile="remove_dora"
-      v-for="(tile, i) in dora_indicators"
-      :key="i"
-      :tile="tile"
-    />
+  <b-form-group
+    label-cols="1"
+    content-cols="11"
+    label="ドラ表示牌"
+    label-align="right"
+    class="kawa_indicators p-0"
+  >
+    <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
     <TileImage
       v-for="(tile, i) in 5 - dora_indicators.length"
       :key="i + 'ura'"
       :tile="-1"
       size="sm"
     />
-  </div>
+  </b-form-group>
 </template>
 
 <script>
-import TileButton from "./TileButton.vue";
 import TileImage from "./TileImage.vue";
 
 export default {
   name: "DoraTiles",
   components: {
-    TileButton,
-    TileImage
+    TileImage,
   },
   props: {
     dora_indicators: {
       type: Array,
-      required: true
-    }
+      required: true,
+    },
   },
-  methods: {
-    remove_dora(tile) {
-      this.$emit("remove-dora", tile);
-    }
-  }
 };
 </script>
 

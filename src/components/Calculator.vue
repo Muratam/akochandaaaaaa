@@ -1,29 +1,47 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tabIndex">
     <b-tab title="試す" :title-link-class="linkClass(0)" class="pl-3 pr-3">
-      <b-button class="mr-2" variant="primary" @click="set_random_hand"
-        >はじめから
-      </b-button>
-      <br />
-      場風：{{ tile2String(bakaze) }} / 自風：{{ tile2String(zikaze) }} /
-      現在の巡目： {{ turn }}
-      <br />
-      河：
-      <KawaTiles :kawa_indicators="kawa_indicators" />
-      ツモ牌：
-      <KawaTiles :kawa_indicators="tsumo_indicators" />
-      ドラ表示牌：
-      <DoraTiles :dora_indicators="dora_indicators" />
-      <br />
-      <HandAndMeldedBlocks
-        v-on:remove-tile="next_tile"
-        :hand_tiles="hand_tiles"
-        :melded_blocks="melded_blocks"
-        size="lg"
-      />
-      <br />
       <b-row class="mb-3">
         <b-col>
+          <b-button class="mr-2" variant="primary" @click="set_random_hand"
+            >リトライ
+          </b-button>
+          <hr />
+          <b-form-group
+            label-cols="1"
+            content-cols="11"
+            label="手牌"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <HandAndMeldedBlocks
+              v-on:remove-tile="next_tile"
+              :hand_tiles="hand_tiles"
+              :melded_blocks="melded_blocks"
+              size="lg"
+            />
+          </b-form-group>
+          <b-form-group
+            label-cols="1"
+            content-cols="11"
+            label="情報"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <legend class="col-form-label">
+              {{ turn }} 巡目 / {{ tile2String(bakaze) }}場 /
+              {{ tile2String(zikaze) }}家
+            </legend>
+          </b-form-group>
+          <DoraTiles :dora_indicators="dora_indicators" />
+          <KawaTiles
+            :kawa_indicators="tsumo_indicators"
+            :label_name="'ツモ牌'"
+          />
+          <KawaTiles :kawa_indicators="kawa_indicators" :label_name="'河'" />
+          <hr v-if="!is_calculating" />
+          <br v-if="is_calculating" />
+          <br v-if="is_calculating" />
           <b-overlay :show="is_calculating" rounded="sm">
             <template #overlay>
               <b-icon
@@ -34,13 +52,21 @@
               <p>計算中</p>
             </template>
           </b-overlay>
-          <hr v-if="!is_calculating" />
-          <HandAndMeldedBlocks
-            v-if="!is_calculating"
-            :hand_tiles="pre_hand_tiles"
-            :melded_blocks="[]"
-            size="lg"
-          />
+          <b-form-group
+            v-if="!is_calculating && turn > 1"
+            label-cols="1"
+            content-cols="11"
+            label="前の手牌"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <HandAndMeldedBlocks
+              v-if="!is_calculating"
+              :hand_tiles="pre_hand_tiles"
+              :melded_blocks="[]"
+              size="lg"
+            />
+          </b-form-group>
           <Result v-if="!is_calculating" :result="result" />
         </b-col>
       </b-row>
@@ -48,7 +74,7 @@
     <b-tab title="設定" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <!-- 設定入力欄 -->
       <b-row>
-        <b-col>
+        <b-col v-if="false">
           <!-- 考慮する項目 -->
           <b-form-group
             label-cols="2"
@@ -87,8 +113,6 @@
       </b-row>
     </b-tab>
     <b-tab title="説明" :title-link-class="linkClass(2)" class="pl-3 pr-3">
-      <h3><b>あﾞごﾞぢﾞゃﾞんﾞだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～</b></h3>
-      <hr />
       <h4>遊び方</h4>
       <ul>
         <li>
@@ -111,6 +135,7 @@
           赤牌、裏ドラ、ダブル立直、一発、海底撈月、向聴戻し、手変わり
           を点数計算に考慮します。
         </li>
+        <li>子の点数で計算します。</li>
       </ul>
 
       <hr />
@@ -119,6 +144,7 @@
         <li>
           七対子の和了・国士無双での和了は考慮されません。一般手と七対子の両天秤に影響があります。
         </li>
+        <li>実装の都合で、すでに捨てた牌の枚数を考慮しません。</li>
         <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
         <li>
           ロン和了は考慮されません。幺九牌待ちのほうが和了やすいといったことは考慮されません。
@@ -127,16 +153,6 @@
           副露が存在しません。役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。
         </li>
         <li>積み棒、不聴罰符、立直棒は点数計算に考慮しません。</li>
-      </ul>
-      <hr />
-      <h4>点数計算</h4>
-      <ul>
-        <li>自摸回数は「18 - 現在の巡目」回です。</li>
-        <li>
-          4人麻雀では鳴きが入らない場合、東家と南家は最大18回、西家と北家は最大17回自摸れるため、配牌13枚から18回自摸れるものと仮定します。
-          例えば、1巡目の場合はすでに1回自摸して手牌が14枚になっているため、あと17回自摸が行えます。
-        </li>
-        <li>東家の場合は親、それ以外の場合は子として点数計算します。</li>
       </ul>
     </b-tab>
   </b-tabs>

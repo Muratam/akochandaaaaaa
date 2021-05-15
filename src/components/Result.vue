@@ -4,10 +4,7 @@
     <template v-if="result && result.success">
       <!-- 結果の概要 -->
       <b-row>
-        <b-col>
-          計算時間: {{ calcTime }} 向聴数: {{ syanten }}
-          <span class="text-primary"> (※青色は向聴戻し) </span>
-        </b-col>
+        <b-col> {{ syanten }} </b-col>
       </b-row>
 
       <!-- 打牌一覧 -->
@@ -178,6 +175,8 @@ export default {
 
   computed: {
     showGraph() {
+      // 表示しない
+      if (true) return false;
       if (!this.result || !this.result.success) return false;
 
       let res = this.result.response;
