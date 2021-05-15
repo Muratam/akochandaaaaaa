@@ -1,6 +1,6 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tabIndex">
-    <b-tab title="ゲーム" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+    <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
       <b-row class="mb-3">
         <b-col>
           <b-form-group
@@ -59,14 +59,35 @@
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <b-row>
         <b-col>
-          <b-button class="mr-2" variant="primary" @click="set_random_hand"
-            >リトライ
-          </b-button>
-          <hr />
           <b-form-group
             label-cols="1"
             content-cols="11"
-            label="自摸モード"
+            label="手牌"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <HandAndMeldedBlocks
+              :hand_tiles="hand_tiles"
+              :melded_blocks="melded_blocks"
+              size="lg"
+            />
+          </b-form-group>
+          <b-form-group
+            label-cols="1"
+            content-cols="11"
+            label="シード"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <legend class="col-form-label">
+              {{ seed }}
+            </legend>
+          </b-form-group>
+          <hr />
+          <b-form-group
+            label-cols="2"
+            content-cols="10"
+            label="次自摸モード"
             label-for="tsumo-mode-target"
             label-align="center"
           >
@@ -85,10 +106,8 @@
               custom-class="custom-tooltip"
               placement="topright"
             >
-              自摸設定を切り替えられます。次回リトライ時から有効になります。
-
               <ul>
-                <li>通常モード: 通常の自摸です。</li>
+                <li>通常モード: 通常の自摸設定です。</li>
                 <li>
                   字牌自摸らずモード:
                   字牌を自摸らなくなります。手がよくなる幸運モードです。(期待値計算では字牌をツモる可能性を考慮して計算されます)
@@ -97,17 +116,38 @@
             </b-tooltip>
           </b-form-group>
           <b-form-group
-            label-cols="1"
-            content-cols="11"
-            label="現在の手牌"
-            label-align="right"
-            class="kawa_indicators p-0"
+            label-cols="2"
+            content-cols="3"
+            label="次シード"
+            label-for="tsumo-seed-target"
+            label-align="center"
           >
-            <HandAndMeldedBlocks
-              :hand_tiles="hand_tiles"
-              :melded_blocks="melded_blocks"
-              size="lg"
-            />
+            <b-form-input
+              id="tsumo-seed-target"
+              v-model="next_seed"
+              size="sm"
+            ></b-form-input>
+
+            <b-tooltip
+              target="tsumo-seed-target"
+              triggers="hover"
+              custom-class="custom-tooltip"
+              placement="topright"
+            >
+              次の盤面のシードを設定できます。
+              同じシードであれば同じ盤面になります。
+            </b-tooltip>
+          </b-form-group>
+          <b-form-group
+            label-cols="2"
+            content-cols="10"
+            label=""
+            label-for="tsumo-mode-target"
+            label-align="center"
+          >
+            <b-button class="mr-2" variant="primary" @click="set_random_hand"
+              >次の盤面を生成
+            </b-button>
           </b-form-group>
           <b-overlay :show="is_calculating" rounded="sm">
             <template #overlay>
@@ -223,6 +263,37 @@ import DoraTiles from "@/components/mahjong/DoraTiles.vue";
 import KawaTiles from "@/components/mahjong/KawaTiles.vue";
 import Result from "./Result.vue";
 
+class XorShift {
+  constructor(s) {
+    // Xorshift128 (init seed with Xorshift32)
+    s ^= s << 13;
+    s ^= 2 >>> 17;
+    s ^= s << 5;
+    this.x = 123456789 ^ s;
+    s ^= s << 13;
+    s ^= 2 >>> 17;
+    s ^= s << 5;
+    this.y = 362436069 ^ s;
+    s ^= s << 13;
+    s ^= 2 >>> 17;
+    s ^= s << 5;
+    this.z = 521288629 ^ s;
+    s ^= s << 13;
+    s ^= 2 >>> 17;
+    s ^= s << 5;
+    this.w = 88675123 ^ s;
+  }
+  // 0 ~ 1
+  random() {
+    let t = this.x ^ (this.x << 11);
+    this.x = this.y;
+    this.y = this.z;
+    this.z = this.w;
+    // >>>0 means 'cast to uint32'
+    this.w = (this.w ^ (this.w >>> 19) ^ (t ^ (t >>> 8))) >>> 0;
+    return this.w / 0x100000000;
+  }
+}
 // めんどいので雑に(vueバインドしたくない)
 let yama = [];
 let yama_index = 0;
@@ -259,7 +330,8 @@ export default {
       is_calculating: false,
       select_tab: 0,
       Hand2String: Hand2String,
-
+      seed: Math.floor(0x100000000 * Math.random()),
+      next_seed: Math.floor(0x100000000 * Math.random()),
       // オプション
       // 場風
       input_bakaze_options: [
@@ -474,9 +546,11 @@ export default {
 
     set_random_hand() {
       this.clear_hand();
+      this.seed = this.next_seed;
       const shuffle = ([...array]) => {
+        let xorshift = new XorShift(this.seed);
         for (let i = array.length - 1; i >= 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
+          const j = Math.floor(xorshift.random() * (i + 1));
           [array[i], array[j]] = [array[j], array[i]];
         }
         return array;
@@ -500,6 +574,7 @@ export default {
 
       // 洗牌する。
       yama = shuffle(yama);
+      this.next_seed = Math.floor(0x100000000 * Math.random());
 
       let hand_tiles = yama.slice(0, 14);
       sort_tiles(hand_tiles);
