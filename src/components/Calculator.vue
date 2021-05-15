@@ -1,6 +1,138 @@
 <template>
-  <div>
-    <b-container fluid class="border border-gray p-3">
+  <b-tabs content-class="mt-3" v-model="tabIndex">
+    <b-tab title="試す" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+      <!-- ボタン -->
+      <b-row class="mb-3">
+        <b-col>
+          <b-overlay :show="is_calculating" rounded="sm">
+            <b-button
+              class="mr-2"
+              variant="primary"
+              @click="calculate"
+              :disabled="n_hand_tiles < 13 || is_calculating"
+              >計算を実行
+            </b-button>
+            <b-button class="mr-2" variant="primary" @click="clear_hand"
+              >手牌を初期化
+            </b-button>
+            <b-button class="mr-2" variant="primary" @click="clear_all"
+              >設定を初期化
+            </b-button>
+            <b-button class="mr-2" variant="primary" @click="set_random_hand"
+              >ランダムの手牌入力
+            </b-button>
+
+            <template #overlay>
+              <b-icon
+                icon="three-dots"
+                animation="cylon"
+                font-scale="4"
+              ></b-icon>
+              <p>計算中</p>
+            </template>
+          </b-overlay>
+        </b-col>
+      </b-row>
+      <!-- 巡目 -->
+      <b-form-group
+        label-cols="2"
+        content-cols="2"
+        label="現在の巡目"
+        label-for="input-turn"
+        label-align="right"
+      >
+        <b-form-select v-model="turn" id="input-turn" size="sm">
+          <b-form-select-option v-for="i in 17" :key="i" :value="i"
+            >{{ i }} 巡目</b-form-select-option
+          >
+        </b-form-select>
+      </b-form-group>
+
+      <!-- ドラ -->
+      <b-form-group
+        label-cols="2"
+        content-cols="4"
+        label="ドラ表示牌"
+        label-for="input-dora-indicators"
+        label-align="right"
+      >
+        <DoraTiles
+          v-on:remove-dora="remove_dora"
+          :dora_indicators="dora_indicators"
+        />
+      </b-form-group>
+      <!-- Calculator -->
+      <b-container fluid class="p-0">
+        <!-- 手牌及び副露ブロックの一覧 -->
+        <b-row class="mb-3">
+          <b-col>
+            <HandAndMeldedBlocks
+              v-on:remove-tile="remove_tile"
+              v-on:remove-block="remove_meld"
+              :hand_tiles="hand_tiles"
+              :melded_blocks="melded_blocks"
+              size="lg"
+            />
+          </b-col>
+        </b-row>
+
+        <!-- 手牌及び副露ブロックの入力欄 -->
+        <b-row>
+          <b-col>
+            <b-tabs v-model="select_tab">
+              <b-tab title="手牌" active>
+                <HandTileInput
+                  v-on:add-tile="add_tile"
+                  :tile_counts="tile_counts"
+                  :n_hand_tiles="n_hand_tiles"
+                />
+              </b-tab>
+              <b-tab title="ドラ表示牌">
+                <p class="m-2">
+                  ドラはドラ表示牌で指定するので注意してください。槓ドラも含め、最大5枚まで設定できます。
+                </p>
+                <HandTileInput
+                  v-on:add-tile="add_dora"
+                  :tile_counts="tile_counts"
+                  :n_dora_tiles="dora_indicators.length"
+                />
+              </b-tab>
+              <b-tab title="明刻子">
+                <MinkotuInput
+                  v-on:add-block="add_meld"
+                  :tile_counts="tile_counts"
+                  :n_hand_tiles="n_hand_tiles"
+                />
+              </b-tab>
+              <b-tab title="明順子">
+                <MinsyuntuInput
+                  v-on:add-block="add_meld"
+                  :tile_counts="tile_counts"
+                  :n_hand_tiles="n_hand_tiles"
+                />
+              </b-tab>
+              <b-tab title="明槓子">
+                <MinkantuInput
+                  v-on:add-block="add_meld"
+                  :tile_counts="tile_counts"
+                  :n_hand_tiles="n_hand_tiles"
+                />
+              </b-tab>
+              <b-tab title="暗槓子">
+                <AnkantuInput
+                  v-on:add-block="add_meld"
+                  :tile_counts="tile_counts"
+                  :n_hand_tiles="n_hand_tiles"
+                />
+              </b-tab>
+            </b-tabs>
+          </b-col>
+        </b-row>
+      </b-container>
+      <!-- 計算結果 -->
+      <Result :result="result" />
+    </b-tab>
+    <b-tab title="設定" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <!-- 設定入力欄 -->
       <b-row>
         <b-col>
@@ -49,21 +181,6 @@
             </b-tooltip>
           </b-form-group>
 
-          <!-- 巡目 -->
-          <b-form-group
-            label-cols="2"
-            content-cols="2"
-            label="現在の巡目"
-            label-for="input-turn"
-            label-align="right"
-          >
-            <b-form-select v-model="turn" id="input-turn" size="sm">
-              <b-form-select-option v-for="i in 17" :key="i" :value="i"
-                >{{ i }} 巡目</b-form-select-option
-              >
-            </b-form-select>
-          </b-form-group>
-
           <!-- 手牌の種類 -->
           <b-form-group
             label-cols="2"
@@ -89,20 +206,6 @@
             >
               手牌の種類を選択します。現在の実装では、「一般手」を選択した場合、七対子は考慮されません。
             </b-tooltip>
-          </b-form-group>
-
-          <!-- ドラ -->
-          <b-form-group
-            label-cols="2"
-            content-cols="4"
-            label="ドラ表示牌"
-            label-for="input-dora-indicators"
-            label-align="right"
-          >
-            <DoraTiles
-              v-on:remove-dora="remove_dora"
-              :dora_indicators="dora_indicators"
-            />
           </b-form-group>
 
           <!-- 考慮する項目 -->
@@ -182,206 +285,66 @@
               </ul>
             </b-tooltip>
           </b-form-group>
-
-          <!-- 牌の枚数 -->
-          <b-form-group
-            label-cols="2"
-            content-cols="2"
-            label="牌の枚数"
-            label-for="input-n-hand-tiles"
-            label-align="right"
-          >
-            <b-form-input
-              v-model="n_hand_tiles"
-              id="input-n-hand-tiles"
-              size="sm"
-              :readonly="true"
-            ></b-form-input>
-          </b-form-group>
         </b-col>
       </b-row>
-
-      <!-- 手牌及び副露ブロックの一覧 -->
-      <b-row class="mb-3">
-        <b-col>
-          <HandAndMeldedBlocks
-            v-on:remove-tile="remove_tile"
-            v-on:remove-block="remove_meld"
-            :hand_tiles="hand_tiles"
-            :melded_blocks="melded_blocks"
-            size="lg"
-          />
-        </b-col>
-      </b-row>
-
-      <!-- 手牌及び副露ブロックの入力欄 -->
-      <b-row>
-        <b-col>
-          <b-tabs v-model="select_tab">
-            <b-tab title="手牌" active>
-              <HandTileInput
-                v-on:add-tile="add_tile"
-                :tile_counts="tile_counts"
-                :n_hand_tiles="n_hand_tiles"
-              />
-            </b-tab>
-            <b-tab title="ドラ表示牌">
-              <p class="m-2">
-                ドラはドラ表示牌で指定するので注意してください。槓ドラも含め、最大5枚まで設定できます。
-              </p>
-              <HandTileInput
-                v-on:add-tile="add_dora"
-                :tile_counts="tile_counts"
-                :n_dora_tiles="dora_indicators.length"
-              />
-            </b-tab>
-            <b-tab title="明刻子">
-              <MinkotuInput
-                v-on:add-block="add_meld"
-                :tile_counts="tile_counts"
-                :n_hand_tiles="n_hand_tiles"
-              />
-            </b-tab>
-            <b-tab title="明順子">
-              <MinsyuntuInput
-                v-on:add-block="add_meld"
-                :tile_counts="tile_counts"
-                :n_hand_tiles="n_hand_tiles"
-              />
-            </b-tab>
-            <b-tab title="明槓子">
-              <MinkantuInput
-                v-on:add-block="add_meld"
-                :tile_counts="tile_counts"
-                :n_hand_tiles="n_hand_tiles"
-              />
-            </b-tab>
-            <b-tab title="暗槓子">
-              <AnkantuInput
-                v-on:add-block="add_meld"
-                :tile_counts="tile_counts"
-                :n_hand_tiles="n_hand_tiles"
-              />
-            </b-tab>
-          </b-tabs>
-        </b-col>
-      </b-row>
-
-      <!-- ボタン -->
-      <b-row class="mb-3">
-        <b-col>
-          <b-overlay :show="is_calculating" rounded="sm">
-            <b-button
-              class="mr-2"
-              variant="primary"
-              @click="calculate"
-              :disabled="n_hand_tiles < 13 || is_calculating"
-              >計算を実行
-            </b-button>
-            <b-button class="mr-2" variant="primary" @click="clear_hand"
-              >手牌を初期化
-            </b-button>
-            <b-button class="mr-2" variant="primary" @click="clear_all"
-              >設定を初期化
-            </b-button>
-            <b-button class="mr-2" variant="primary" @click="set_random_hand"
-              >ランダムの手牌入力
-            </b-button>
-
-            <template #overlay>
-              <b-icon
-                icon="three-dots"
-                animation="cylon"
-                font-scale="4"
-              ></b-icon>
-              <p>計算中</p>
-            </template>
-          </b-overlay>
-        </b-col>
-      </b-row>
-
-      <!-- 他ツール -->
-      <b-row align-v="center">
-        <b-col cols="auto"> 他ツールでの検証 </b-col>
-        <b-col>
-          <!-- 天鳳 / 牌理 -->
-          <b-button
-            class="mr-2"
-            :disabled="n_hand_tiles % 3 != 2"
-            :href="tenhoURL"
+    </b-tab>
+    <b-tab title="説明" :title-link-class="linkClass(2)" class="pl-3 pr-3">
+      <h3><b>あﾞごﾞぢﾞゃﾞんﾞだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～</b></h3>
+      <hr />
+      ここは
+      <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
+        >https://pystyle.info/apps/mahjong-nanikiru-simulator/</a
+      >
+      を改変した、一人麻雀の練習ができるサイトです。新子憧のように強くなりましょう。
+      <hr />
+      <h4>前提条件</h4>
+      <ul>
+        <li>自摸回数は「18 - 現在の巡目」回です。</li>
+        <li>
+          4人麻雀では鳴きが入らない場合、東家と南家は最大18回、西家と北家は最大17回自摸れるため、配牌13枚から18回自摸れるものと仮定します。
+          例えば、1巡目の場合はすでに1回自摸して手牌が14枚になっているため、あと17回自摸が行えます。
+        </li>
+        <li>
+          副露 (ポン、チー、暗槓、明槓、加槓)
+          は考慮しません。ただし、何切るを考える時点で、副露している手牌は設定可能です。
+        </li>
+        <li>赤牌の自摸は考慮されます。</li>
+        <li>積み棒、不聴罰符、立直棒は点数計算に考慮しません。</li>
+        <li>東家の場合は親、それ以外の場合は子として点数計算します。</li>
+        <li>
+          「考慮する項目」で有効の場合、裏ドラ、ダブル立直、一発、海底撈月
+          は点数計算に考慮します。
+        </li>
+        <li>「考慮する項目」で有効の場合、向聴戻し、手変わり は考慮します。</li>
+      </ul>
+      <hr />
+      <h4>結果の解釈について</h4>
+      <ul>
+        <li>
+          点数期待値において、50点未満の差はほぼ同等と考えてよいです。
+          例えば、手牌「123m999p789s北北北白發」において、白のほうが裏ドラ表示牌が1枚多いため、白単騎だと5032点、發単騎だと5017点で15点差になります。
+          このように、数十点というのは裏ドラ表示牌が1枚多いかどうか程度の差しかありません。
+        </li>
+        <li>
+          他家が存在しないため、ロン和了が存在しません。そのため、幺九牌待ちのほうが和了やすいといったことは考慮されません。
+        </li>
+        <li>
+          他家が存在しないため、副露が存在しません。そのため、役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。
+          副露を考慮する牌理は
+          <b-link
+            href="http://yabejp.web.fc2.com/mahjong/tactics.html"
             target="_blank"
-            variant="success"
-            id="tooltip-tenho-hairi"
-            >天鳳 / 牌理
-          </b-button>
-          <!-- 一人麻雀練習機 -->
-          <b-button
-            class="mr-2"
-            :disabled="
-              n_hand_tiles != 14 ||
-              this.melded_blocks != 0 ||
-              this.dora_indicators.length != 1
-            "
-            variant="success"
-            @click="downloadHMR"
-            id="tooltip-hmr"
-            >一人麻雀練習機
-          </b-button>
-          <b-tooltip
-            target="tooltip-hmr"
-            triggers="hover"
-            custom-class="custom-tooltip"
-            placement="topright"
+            class="text-info"
+            >現代麻雀技術論</b-link
           >
-            <p>
-              <b-link
-                href="http://ara.moo.jp/mjhmr/"
-                target="_blank"
-                class="text-info"
-                >一人麻雀練習機</b-link
-              >で読み込める .hmr ファイルをダウンロードします。
-            </p>
-            <p>一人麻雀練習機は副露、赤牌、槓ドラは対応していません。</p>
-
-            <ol>
-              <li>一人麻雀練習機を起動します。</li>
-              <li>
-                「読み込み」ボタンをクリックし、ダウンロードした .hmr 形式の
-                ファイルを開きます。
-              </li>
-              <li>
-                メニューの「ツール」から「何切る？」または「何切る？(手変わり)」を選択します。
-              </li>
-            </ol>
-          </b-tooltip>
-          <!-- ツモアガリ確率計算機 -->
-          <b-button
-            :disabled="n_hand_tiles != 14 || this.melded_blocks.length != 0"
-            variant="success"
-            v-clipboard:copy="tumoProbStr"
-            id="tooltip-tumoprob"
-            >ツモアガリ確率計算機</b-button
-          >
-          <b-tooltip
-            target="tooltip-tumoprob"
-            triggers="hover"
-            custom-class="custom-tooltip"
-            placement="topright"
-          >
-            <b-link
-              href="http://critter.sakura.ne.jp/agari_keisan.html"
-              target="_blank"
-              class="text-info"
-              >ツモアガリ確率計算機</b-link
-            >の「手牌」入力欄にコピペできる手牌形式をクリップボードにコピーします。
-          </b-tooltip>
-        </b-col>
-      </b-row>
-    </b-container>
-
-    <!-- 計算結果 -->
-    <Result :result="result" />
-  </div>
+          などを参考にルールベースで考えるとよいと思います。
+        </li>
+        <li>
+          「手牌の種類」が「一般手」の場合、七対子の和了が考慮されません。そのため、一般手と七対子の両天秤を見るべき手牌で正着が選ばれない可能性があります。
+        </li>
+      </ul>
+    </b-tab>
+  </b-tabs>
 </template>
 
 <script>
@@ -419,11 +382,15 @@ export default {
     AnkantuInput,
     Result,
   },
-  data: function () {
+  data() {
     return {
+      // Description
+      tabIndex: 0,
+
+      // data
       bakaze: Tile.Ton, // 場風
       zikaze: Tile.Ton, // 自風
-      turn: 3, // 現在の巡目
+      turn: 1, // 現在の巡目
       syanten_type: SyantenType.Normal, // 手牌の種類
       dora_indicators: [Tile.Ton], // ドラ
       flag: [1, 2, 4, 8, 16, 32], // フラグ
@@ -492,40 +459,6 @@ export default {
       return "https://tenhou.net/2/?q=" + Hand2TenhoString(this.hand_tiles);
     },
 
-    // tumoProbURL: function() {
-    //   // ドラは最大4枚、赤ドラは非対応
-    //   let dora_tiles = this.dora_indicators
-    //     .map(x => DoraHyozi2Dora[x])
-    //     .slice(0, 4)
-    //     .map(x => Tile2TumoProbString.get(x))
-    //     .join(",");
-
-    //   // 手牌
-    //   let hand_tiles = this.hand_tiles
-    //     .map(x => Tile2TumoProbString.get(x))
-    //     .join(",");
-
-    //   // 手変わりを考慮するかどうか
-    //   let tegawari =
-    //     this.flag.indexOf(1) != -1 || this.flag.indexOf(2) != -1 ? 1 : 0;
-
-    //   let query = {
-    //     bakaze: this.bakaze - 27,
-    //     jikaze: this.zikaze - 27,
-    //     text0: dora_tiles,
-    //     text1: hand_tiles,
-    //     tsumo_num: tegawari
-    //   };
-    //   const searchParams = new URLSearchParams();
-    //   Object.keys(query).forEach(k => searchParams.append(k, query[k]));
-
-    //   let url =
-    //     "http://critter.sakura.ne.jp/agari_keisan3.cgi?" +
-    //     searchParams.toString();
-
-    //   return url;
-    // },
-
     tumoProbStr: function () {
       let hand_tiles = this.hand_tiles
         .map((x) => Tile2TumoProbString.get(x))
@@ -564,6 +497,14 @@ export default {
   },
 
   methods: {
+    linkClass(idx) {
+      if (this.tabIndex === idx) {
+        return "text-dark";
+      } else {
+        return "text-dark";
+      }
+    },
+
     calculate() {
       this.is_calculating = true;
       this.result = null;
@@ -636,9 +577,7 @@ export default {
     /// 長さ34の配列形式にする。
     toTiles34(tiles) {
       let tiles34 = Array(34).fill(0);
-
       for (let tile of tiles) tiles34[Aka2Normal(tile)]++;
-
       return tiles34;
     },
 
@@ -712,6 +651,9 @@ export default {
       this.hand_tiles = hand_tiles;
     },
   },
+  mounted() {
+    this.set_random_hand();
+  },
 };
 </script>
 
@@ -720,5 +662,30 @@ export default {
   max-width: 400px;
   text-align: left;
   padding-top: 5px;
+}
+.social-button {
+  font-weight: bold;
+  color: white;
+  border-radius: 3px;
+  margin-right: 10px;
+  width: 100px;
+  height: 25px;
+  text-align: center;
+  display: inline-block;
+}
+
+.Facebook {
+  background-color: #2e4a88;
+  box-shadow: 0 4px 0 #1b3d82;
+}
+
+.Twitter {
+  background-color: #008dde;
+  box-shadow: 0 4px 0 #0078bd;
+}
+
+.Line {
+  background-color: #22cc47;
+  box-shadow: 0 4px 0 #14ba5f;
 }
 </style>
