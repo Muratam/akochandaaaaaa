@@ -29,7 +29,7 @@
             class="kawa_indicators p-0"
           >
             <legend class="col-form-label">
-              {{ turn }} 巡目 / {{ tile2String(bakaze) }}場 /
+              {{ turn }} 巡目 / {{ shanten }} / {{ tile2String(bakaze) }}場 /
               {{ tile2String(zikaze) }}家
             </legend>
           </b-form-group>
@@ -53,8 +53,8 @@
             </template>
           </b-overlay>
           <Result
-            v-if="!is_calculating"
-            :result="result"
+            v-if="turn > 1"
+            :result="pre_result"
             :hand_tiles="pre_hand_tiles"
           />
         </b-col>
@@ -63,6 +63,42 @@
     <b-tab title="設定" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <!-- 設定入力欄 -->
       <b-row>
+        <b-col>
+          <b-form-group
+            label-cols="1"
+            content-cols="11"
+            label="自摸モード"
+            label-for="tsumo-mode-target"
+            label-align="center"
+          >
+            <b-form-radio-group
+              id="tsumo-mode-target"
+              v-model="tsumo_mode"
+              :options="tsumo_mode_options"
+              button-variant="outline-primary"
+              size="sm"
+              buttons
+            ></b-form-radio-group>
+
+            <b-tooltip
+              target="tsumo-mode-target"
+              triggers="hover"
+              custom-class="custom-tooltip"
+              placement="topright"
+            >
+              自摸設定を切り替えられます。次回リトライ時から有効になります。
+
+              <ul>
+                <li>通常モード: 通常の自摸です。</li>
+                <li>
+                  字牌自摸らずモード:
+                  字牌を自摸らなくなります。手がよくなる幸運モードです。(期待値計算では字牌をツモる可能性を考慮して計算されます)
+                </li>
+              </ul>
+            </b-tooltip>
+          </b-form-group>
+        </b-col>
+
         <b-col v-if="false">
           <!-- 考慮する項目 -->
           <b-form-group
@@ -192,10 +228,12 @@ export default {
       tsumo_indicators: [], // 自摸牌
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
+      tsumo_mode: 0,
       hand_tiles: [], // 手牌
       pre_hand_tiles: [], // 一手前の手牌
       melded_blocks: [], // 副露ブロックの一覧
       result: null, // 結果
+      pre_result: null, // 一手前の結果
       is_calculating: false,
       select_tab: 0,
       Hand2String: Hand2String,
@@ -248,6 +286,17 @@ export default {
           text: "和了確率最大化",
         },
       ],
+      // 自摸モード
+      tsumo_mode_options: [
+        {
+          value: 0,
+          text: "通常モード",
+        },
+        {
+          value: 1,
+          text: "字牌自摸らずモード",
+        },
+      ],
     };
   },
 
@@ -282,6 +331,22 @@ export default {
       this.melded_blocks.forEach((block) => block.tiles.forEach(minus_tile));
       return counts;
     },
+    shanten() {
+      if (!this.result) return "?向聴";
+      if (!this.result.success) {
+        if (this.is_agari) return "和了";
+        else return "?向聴";
+      }
+      if (this.result.response.syanten == 0) return "聴牌";
+      return this.result.response.syanten + "向聴";
+    },
+    is_agari() {
+      if (!this.result) return false;
+      if (!this.result.success && this.result.err_msg === "和了形です。") {
+        return true;
+      }
+      return false;
+    },
   },
 
   methods: {
@@ -297,6 +362,7 @@ export default {
     },
     calculate() {
       this.is_calculating = true;
+      this.pre_result = this.result;
       this.result = null;
       let data = JSON.stringify({
         zikaze: this.zikaze,
@@ -308,10 +374,15 @@ export default {
         hand_tiles: this.hand_tiles,
         melded_blocks: this.melded_blocks,
       });
-      requestIdleCallback(() => {
-        this.result = JSON.parse(window["Module"].process_request(data));
-        this.is_calculating = false;
-      });
+      let impl = () => {
+        if (window["Module"].process_request) {
+          this.result = JSON.parse(window["Module"].process_request(data));
+          this.is_calculating = false;
+        } else {
+          requestIdleCallback(impl);
+        }
+      };
+      requestIdleCallback(impl);
     },
 
     /// 手牌を初期化する。
@@ -345,13 +416,13 @@ export default {
       for (let hand of this.hand_tiles) {
         this.pre_hand_tiles.push(hand);
       }
-      this.calculate();
       let i = this.hand_tiles.indexOf(tile);
       if (i > -1) this.hand_tiles.splice(i, 1);
       this.kawa_indicators.push(tile);
       this.add_tile(yama[yama_index]);
       yama_index++;
       this.turn++;
+      this.calculate();
       // 18になったらしっぱい
     },
 
@@ -391,7 +462,8 @@ export default {
 
       // 牌山を作成する。
       yama = [];
-      for (let i = 0; i < 34; ++i) {
+      let max_yama = this.tsumo_mode === 0 ? 34 : 27;
+      for (let i = 0; i < max_yama; ++i) {
         yama = yama.concat(Array(4).fill(i));
       }
       yama[Tile.Manzu5 * 4] = Tile.AkaManzu5;
@@ -413,6 +485,7 @@ export default {
       yama_index = 15;
       this.turn = 1;
       this.hand_tiles = hand_tiles;
+      this.calculate();
     },
   },
   mounted() {
