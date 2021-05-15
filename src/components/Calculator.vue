@@ -10,6 +10,8 @@
       <br />
       河：
       <KawaTiles :kawa_indicators="kawa_indicators" />
+      ツモ牌：
+      <KawaTiles :kawa_indicators="tsumo_indicators" />
       ドラ表示牌：
       <DoraTiles :dora_indicators="dora_indicators" />
       <br />
@@ -182,6 +184,7 @@ export default {
       syanten_type: SyantenType.Normal, // 手牌の種類
       dora_indicators: [], // ドラ
       kawa_indicators: [], // 河
+      tsumo_indicators: [], // 自摸牌
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
       hand_tiles: [], // 手牌
@@ -313,6 +316,7 @@ export default {
       this.melded_blocks.splice(0, this.melded_blocks.length);
       this.dora_indicators.splice(0, this.dora_indicators.length);
       this.kawa_indicators.splice(0, this.kawa_indicators.length);
+      this.tsumo_indicators.splice(0, this.tsumo_indicators.length);
       this.result = null;
     },
 
@@ -326,6 +330,7 @@ export default {
     /// 牌を手牌に追加する。
     add_tile(tile) {
       this.hand_tiles.push(tile);
+      this.tsumo_indicators.push(tile);
       sort_tiles(this.hand_tiles);
     },
 
