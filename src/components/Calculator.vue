@@ -1,12 +1,8 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tabIndex">
-    <b-tab title="試す" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+    <b-tab title="ゲーム" :title-link-class="linkClass(0)" class="pl-3 pr-3">
       <b-row class="mb-3">
         <b-col>
-          <b-button class="mr-2" variant="primary" @click="set_random_hand"
-            >リトライ
-          </b-button>
-          <hr />
           <b-form-group
             label-cols="1"
             content-cols="11"
@@ -60,10 +56,13 @@
         </b-col>
       </b-row>
     </b-tab>
-    <b-tab title="設定" :title-link-class="linkClass(1)" class="pl-3 pr-3">
-      <!-- 設定入力欄 -->
+    <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <b-row>
         <b-col>
+          <b-button class="mr-2" variant="primary" @click="set_random_hand"
+            >リトライ
+          </b-button>
+          <hr />
           <b-form-group
             label-cols="1"
             content-cols="11"
@@ -97,6 +96,29 @@
               </ul>
             </b-tooltip>
           </b-form-group>
+          <b-form-group
+            label-cols="1"
+            content-cols="11"
+            label="現在の手牌"
+            label-align="right"
+            class="kawa_indicators p-0"
+          >
+            <HandAndMeldedBlocks
+              :hand_tiles="hand_tiles"
+              :melded_blocks="melded_blocks"
+              size="lg"
+            />
+          </b-form-group>
+          <b-overlay :show="is_calculating" rounded="sm">
+            <template #overlay>
+              <b-icon
+                icon="three-dots"
+                animation="cylon"
+                font-scale="4"
+              ></b-icon>
+              <p>計算中</p>
+            </template>
+          </b-overlay>
         </b-col>
 
         <b-col v-if="false">
@@ -137,7 +159,7 @@
         </b-col>
       </b-row>
     </b-tab>
-    <b-tab title="説明" :title-link-class="linkClass(2)" class="pl-3 pr-3">
+    <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
       <h4>遊び方</h4>
       <ul>
         <li>
@@ -167,7 +189,7 @@
       <h4>考慮されない項目</h4>
       <ul>
         <li>
-          七対子の和了・国士無双での和了は考慮されません。一般手と七対子の両天秤に影響があります。
+          <b>七対子・国士無双は考慮されません。</b>
         </li>
         <li>実装の都合で、すでに捨てた牌の枚数を考慮しません。</li>
         <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
