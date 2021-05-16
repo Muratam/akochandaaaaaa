@@ -1,227 +1,189 @@
 <template>
-  <b-tabs content-class="mt-3" v-model="tabIndex">
+  <b-tabs content-class="mt-3" v-model="tab_index">
     <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
-      <b-row class="mb-3">
-        <b-col>
-          <b-form-group
-            label-cols="0"
-            content-cols="12"
-            label=""
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              ドラ表示牌
-              <TileImage
-                v-for="(tile, i) in dora_indicators"
-                :key="i"
-                :tile="tile"
-              />
-            </span>
-            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              ツモ
-              <TileImage
-                v-if="tsumo_indicators.length > 0"
-                :tile="tsumo_indicators[tsumo_indicators.length - 1]"
-              />
-              <TileImage v-if="tsumo_indicators.length <= 0" :tile="-1" />
-            </span>
-            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              捨牌
-              <TileImage
-                v-if="kawa_indicators.length > 0"
-                :tile="kawa_indicators[kawa_indicators.length - 1]"
-              />
-              <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
-            </span>
-            <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              {{ turn }} 巡目 </span
-            ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              {{ shanten }} </span
-            ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              {{ tile2String(bakaze) }}場 </span
-            ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
-              {{ tile2String(zikaze) }}家
-            </span>
-          </b-form-group>
-          <b-form-group
-            label-cols="0"
-            content-cols="12"
-            label=""
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <HandAndMeldedBlocks
-              v-on:remove-tile="next_tile"
-              :hand_tiles="hand_tiles"
-              :melded_blocks="melded_blocks"
-              size="lg"
-            />
-          </b-form-group>
-
-          <hr v-if="!is_calculating" />
-          <br v-if="is_calculating" />
-          <br v-if="is_calculating" />
-          <b-overlay :show="is_calculating" rounded="sm">
-            <template #overlay>
-              <b-icon
-                icon="three-dots"
-                animation="cylon"
-                font-scale="4"
-              ></b-icon>
-              <p>計算中</p>
-            </template>
-          </b-overlay>
-          <Result
-            v-if="turn > 1"
-            :result="pre_result"
-            :hand_tiles="pre_hand_tiles"
+      <b-form-group
+        label-cols="0"
+        content-cols="12"
+        label=""
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <HandAndMeldedBlocks
+          v-on:remove-tile="next_tile"
+          :hand_tiles="hand_tiles"
+          :melded_blocks="melded_blocks"
+          size="lg"
+        />
+      </b-form-group>
+      <b-form-group
+        label-cols="0"
+        content-cols="12"
+        label=""
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+          ドラ表示牌
+          <TileImage
+            v-for="(tile, i) in dora_indicators"
+            :key="i"
+            :tile="tile"
           />
-        </b-col>
-      </b-row>
+        </span>
+        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+          ツモ
+          <TileImage
+            v-if="tsumo_indicators.length > 0"
+            :tile="tsumo_indicators[tsumo_indicators.length - 1]"
+          />
+          <TileImage v-if="tsumo_indicators.length <= 0" :tile="-1" />
+        </span>
+        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+          捨牌
+          <TileImage
+            v-if="kawa_indicators.length > 0"
+            :tile="kawa_indicators[kawa_indicators.length - 1]"
+          />
+          <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
+        </span>
+        <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ turn }} 巡目 </span
+        ><span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ shanten }} </span
+        ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
+          {{ tile2String(bakaze) }}場 </span
+        ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
+          {{ tile2String(zikaze) }}家
+        </span>
+      </b-form-group>
+      <b-overlay :show="is_calculating" rounded="sm">
+        <template #overlay>
+          <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
+          <p>計算中</p>
+        </template>
+      </b-overlay>
+      <b-tabs content-class="mt-3" v-if="turn > 1" v-model="score_tab_index">
+        <b-tab title="打牌詳細" class="p-0">
+          <Result
+            :result="pre_result"
+            :is_show_graph="false"
+            :hand_tiles="pre_hand_tiles"
+            :selected_tile="
+              kawa_indicators.length > 0
+                ? kawa_indicators[kawa_indicators.length - 1]
+                : -1
+            "
+          />
+        </b-tab>
+        <b-tab title="打牌グラフ" class="p-0">
+          <Result
+            :result="pre_result"
+            :is_show_graph="true"
+            :hand_tiles="pre_hand_tiles"
+            :selected_tile="
+              kawa_indicators.length > 0
+                ? kawa_indicators[kawa_indicators.length - 1]
+                : -1
+            "
+          />
+        </b-tab>
+      </b-tabs>
     </b-tab>
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
-      <b-row>
-        <b-col>
-          <b-form-group
-            label-cols="1"
-            content-cols="11"
-            label="シード"
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <legend class="col-form-label">
-              {{ seed }}
-            </legend>
-          </b-form-group>
-          <b-form-group
-            label-cols="1"
-            content-cols="11"
-            label="手牌"
-            label-align="right"
-            class="kawa_indicators p-0"
-          >
-            <HandAndMeldedBlocks
-              :hand_tiles="hand_tiles"
-              :melded_blocks="melded_blocks"
-              size="lg"
-            />
-          </b-form-group>
-          <hr />
-          <b-form-group
-            label-cols="2"
-            content-cols="10"
-            label="次自摸モード"
-            label-for="tsumo-mode-target"
-            label-align="center"
-          >
-            <b-form-radio-group
-              id="tsumo-mode-target"
-              v-model="tsumo_mode"
-              :options="tsumo_mode_options"
-              button-variant="outline-primary"
-              size="sm"
-              buttons
-            ></b-form-radio-group>
+      <b-form-group
+        label-cols="1"
+        content-cols="11"
+        label="シード"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <legend class="col-form-label">
+          {{ seed }}
+        </legend>
+      </b-form-group>
+      <b-form-group
+        label-cols="1"
+        content-cols="11"
+        label="配牌"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <HandAndMeldedBlocks
+          :hand_tiles="haipai_tiles"
+          :melded_blocks="melded_blocks"
+          size="lg"
+        />
+      </b-form-group>
+      <hr />
+      <b-form-group
+        label-cols="2"
+        content-cols="10"
+        label="次自摸モード"
+        label-for="tsumo-mode-target"
+        label-align="center"
+      >
+        <b-form-radio-group
+          id="tsumo-mode-target"
+          v-model="tsumo_mode"
+          :options="tsumo_mode_options"
+          button-variant="outline-primary"
+          size="sm"
+          buttons
+        ></b-form-radio-group>
 
-            <b-tooltip
-              target="tsumo-mode-target"
-              triggers="hover"
-              custom-class="custom-tooltip"
-              placement="topright"
-            >
-              <ul>
-                <li>通常モード: 通常の自摸設定です。</li>
-                <li>
-                  字牌自摸らずモード:
-                  字牌を自摸らなくなります。手がよくなる幸運モードです。(期待値計算では字牌をツモる可能性を考慮して計算されます)
-                </li>
-              </ul>
-            </b-tooltip>
-          </b-form-group>
-          <b-form-group
-            label-cols="2"
-            content-cols="3"
-            label="次シード"
-            label-for="tsumo-seed-target"
-            label-align="center"
-          >
-            <b-form-input
-              id="tsumo-seed-target"
-              v-model="next_seed"
-              size="sm"
-            ></b-form-input>
+        <b-tooltip
+          target="tsumo-mode-target"
+          triggers="hover"
+          custom-class="custom-tooltip"
+          placement="topright"
+        >
+          <ul>
+            <li>通常モード: 通常の自摸設定です。</li>
+            <li>
+              字牌自摸らずモード:
+              字牌を自摸らなくなります。手がよくなる幸運モードです。(期待値計算では字牌をツモる可能性を考慮して計算されます)
+            </li>
+          </ul>
+        </b-tooltip>
+      </b-form-group>
+      <b-form-group
+        label-cols="2"
+        content-cols="3"
+        label="次シード"
+        label-for="tsumo-seed-target"
+        label-align="center"
+      >
+        <b-form-input
+          id="tsumo-seed-target"
+          v-model="next_seed"
+          size="sm"
+        ></b-form-input>
 
-            <b-tooltip
-              target="tsumo-seed-target"
-              triggers="hover"
-              custom-class="custom-tooltip"
-              placement="topright"
-            >
-              次の盤面のシードを設定できます。
-              同じシードであれば同じ盤面になります。
-            </b-tooltip>
-          </b-form-group>
-          <b-form-group
-            label-cols="2"
-            content-cols="10"
-            label=""
-            label-for="tsumo-mode-target"
-            label-align="center"
-          >
-            <b-button class="mr-2" variant="primary" @click="set_random_hand"
-              >次の盤面を生成
-            </b-button>
-          </b-form-group>
-          <b-overlay :show="is_calculating" rounded="sm">
-            <template #overlay>
-              <b-icon
-                icon="three-dots"
-                animation="cylon"
-                font-scale="4"
-              ></b-icon>
-              <p>計算中</p>
-            </template>
-          </b-overlay>
-        </b-col>
-
-        <b-col v-if="false">
-          <!-- 考慮する項目 -->
-          <b-form-group
-            label-cols="2"
-            content-cols="4"
-            label="重視する項目"
-            label-for="input-maximize-target"
-            label-align="right"
-          >
-            <b-form-radio-group
-              id="input-maximize-target"
-              v-model="maximize_target"
-              :options="input_maximize_target_options"
-              button-variant="outline-primary"
-              size="sm"
-              buttons
-            ></b-form-radio-group>
-
-            <b-tooltip
-              target="input-maximize-target"
-              triggers="hover"
-              custom-class="custom-tooltip"
-              placement="topright"
-            >
-              一向聴以上の手牌の場合に、シミュレーション途中の打牌選択の方針を設定します。
-
-              <ul>
-                <li>期待値最大化: 期待値が最大となる打牌を選択します。</li>
-                <li>
-                  和了確率最大化:
-                  和了確率が最大となる打牌を選択します。オーラストップなど和了率を重視する場合はこちらを選択してください。
-                </li>
-              </ul>
-            </b-tooltip>
-          </b-form-group>
-        </b-col>
-      </b-row>
+        <b-tooltip
+          target="tsumo-seed-target"
+          triggers="hover"
+          custom-class="custom-tooltip"
+          placement="topright"
+        >
+          次の盤面のシードを設定できます。
+          同じシードであれば同じ盤面になります。
+        </b-tooltip>
+      </b-form-group>
+      <b-form-group
+        label-cols="2"
+        content-cols="10"
+        label=""
+        label-for="tsumo-mode-target"
+        label-align="center"
+      >
+        <b-button class="mr-2" variant="primary" @click="set_random_hand"
+          >次の盤面を生成
+        </b-button>
+      </b-form-group>
+      <b-overlay :show="is_calculating" rounded="sm">
+        <template #overlay>
+          <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
+          <p>計算中</p>
+        </template>
+      </b-overlay>
     </b-tab>
     <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
       <h4>遊び方</h4>
@@ -277,9 +239,7 @@ import {
   Hand2String,
   SyantenType,
   SyantenType2String,
-  Hand2TenhoString,
   Aka2Normal,
-  Tile2TumoProbString,
 } from "@/mahjong.js";
 
 import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
@@ -331,7 +291,8 @@ export default {
   data() {
     return {
       // Description
-      tabIndex: 0,
+      tab_index: 0,
+      score_tab_index: 0,
 
       // data
       bakaze: Tile.Ton, // 場風
@@ -344,6 +305,7 @@ export default {
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
       tsumo_mode: 0,
+      haipai_tiles: [], // 配牌
       hand_tiles: [], // 手牌
       pre_hand_tiles: [], // 一手前の手牌
       melded_blocks: [], // 副露ブロックの一覧
@@ -418,13 +380,6 @@ export default {
 
   computed: {
     // 手牌の枚数
-    tenhoURL() {
-      return "https://tenhou.net/2/?q=" + Hand2TenhoString(this.hand_tiles);
-    },
-    tumoProbStr() {
-      return this.hand_tiles.map((x) => Tile2TumoProbString.get(x)).join(",");
-    },
-    // 手牌の枚数
     n_hand_tiles() {
       return this.hand_tiles.length + this.melded_blocks.length * 3;
     },
@@ -470,7 +425,7 @@ export default {
       return Tile2String.get(tile);
     },
     linkClass(idx) {
-      if (this.tabIndex === idx) {
+      if (this.tab_index === idx) {
         return "text-dark";
       } else {
         return "text-dark";
@@ -600,6 +555,10 @@ export default {
 
       let hand_tiles = yama.slice(0, 14);
       sort_tiles(hand_tiles);
+      this.haipai_tiles.splice(0, this.haipai_tiles.length);
+      for (let tile of hand_tiles) {
+        this.haipai_tiles.push(tile);
+      }
       this.add_dora(yama[14]);
       yama_index = 15;
       this.turn = 1;
