@@ -504,7 +504,7 @@ export default {
       )} % の打牌をして、${this.shanten}！`;
     },
     state_url() {
-      return `${this.state_url_pure()}?q=${this.seed}&c=${this.tsumo_mode}`;
+      return `${this.state_url_pure}?q=${this.seed}&c=${this.tsumo_mode}`;
     },
     state_url_pure() {
       let url = new URL(window.location.href);
