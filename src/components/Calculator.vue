@@ -39,6 +39,9 @@
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         {{ tile2String(zikaze) }}家
       </span>
+      <b-button class="mr-2" variant="light" @click="reset_hand"
+        >やり直す
+      </b-button>
       <b-form-group
         label-cols="0"
         content-cols="12"
@@ -695,10 +698,9 @@ export default {
       let i = this.dora_indicators.indexOf(tile);
       if (i > -1) this.dora_indicators.splice(i, 1);
     },
-
-    set_random_hand() {
+    reset_hand() {
       this.clear_hand();
-      this.seed = this.next_seed;
+
       const shuffle = ([...array]) => {
         let xorshift = new XorShift(this.seed);
         for (let i = array.length - 1; i >= 0; i--) {
@@ -739,6 +741,10 @@ export default {
       this.turn = 1;
       this.hand_tiles = hand_tiles;
       this.calculate();
+    },
+    set_random_hand() {
+      this.seed = this.next_seed;
+      this.reset_hand();
     },
   },
   mounted() {
