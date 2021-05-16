@@ -74,7 +74,7 @@
             '%; text-align: left; padding-left: 1em'
           "
         >
-          期待値：{{ (expected_score_rate * 100).toFixed(0) }} % (x{{
+          期待値：{{ (expected_score_rate * 100).toFixed(0) }}% (x{{
             expected_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -265,13 +265,10 @@
           最後まで100%であれば、各時点で期待値が最大となる打牌ができています。
         </li>
         <li>
-          正常に動作しない場合は<a href="../akochandaaaaa-mobile/"
-            >省メモリ版</a
-          >
-          を、 逆に速度が遅い場合は<a href="../akochandaaaaa/"
+          速度が気になる場合は<a href="../akochandaaaaa-fast/"
             >メモリ使用高速化版</a
-          >
-          を、活用ください
+          >を活用ください。メモリを大量に使用するため、環境によっては動作しないことがありますので、
+          その場合は<a href="../akochandaaaaa/">通常版</a>を活用ください。
         </li>
         <li>
           <ShareNetwork
@@ -507,12 +504,15 @@ export default {
       )} % の打牌をして、${this.shanten}！`;
     },
     state_url() {
-      let url = new URL(window.location.href);
-      return `${url.origin}${url.pathname}?q=${this.seed}&c=${this.tsumo_mode}`;
+      return `${this.state_url_pure()}?q=${this.seed}&c=${this.tsumo_mode}`;
     },
     state_url_pure() {
       let url = new URL(window.location.href);
-      return `${url.origin}${url.pathname}`;
+      let pathname = url.pathname.replace(
+        "akochandaaaaa-fast",
+        "akochandaaaaa"
+      );
+      return `${url.origin}${pathname}`;
     },
     // 各牌の残り枚数
     tile_counts() {
