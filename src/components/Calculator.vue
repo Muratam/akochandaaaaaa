@@ -252,15 +252,11 @@
       <ul>
         <li>
           ここは
-          <a
-            href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
+          <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
             >https://pystyle.info/apps/mahjong-nanikiru-simulator/</a
           >
           を改変した、一人麻雀の練習ができるサイトです。 (
-          <a
-            href="https://github.com/Muratam/akochandaaaaaa"
-            >GitHub</a
-          >
+          <a href="https://github.com/Muratam/akochandaaaaaa">GitHub</a>
           )
         </li>
         <li>
@@ -269,8 +265,13 @@
           最後まで100%であれば、各時点で期待値が最大となる打牌ができています。
         </li>
         <li>
-          正常に動作しない場合は<a href="../akochandaaaaa-mobile/">省メモリ版</a> を、
-          逆に速度が遅い場合は<a href="../akochandaaaaa/">メモリ使用高速化版</a> を、活用ください
+          正常に動作しない場合は<a href="../akochandaaaaa-mobile/"
+            >省メモリ版</a
+          >
+          を、 逆に速度が遅い場合は<a href="../akochandaaaaa/"
+            >メモリ使用高速化版</a
+          >
+          を、活用ください
         </li>
         <li>
           <ShareNetwork
@@ -551,6 +552,16 @@ export default {
   },
 
   methods: {
+    unwrap_aka(tile) {
+      if (tile === Tile.AkaManzu5) {
+        return Tile.Manzu5;
+      } else if (tile === Tile.AkaPinzu5) {
+        return Tile.Pinzu5;
+      } else if (tile === Tile.AkaSozu5) {
+        return Tile.Sozu5;
+      }
+      return tile;
+    },
     tile2String(tile) {
       return Tile2String.get(tile);
     },
@@ -633,6 +644,7 @@ export default {
       yama_index++;
       this.turn++;
       this.calculate();
+      tile = this.unwrap_aka(tile);
       if (this.pre_result && this.pre_result.success) {
         (() => {
           let max_exp_value = 0;
