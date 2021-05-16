@@ -2,19 +2,6 @@
   <b-container fluid class="p-0">
     <!-- 成功時 -->
     <template v-if="result && result.success">
-      <b-form-group
-        label-cols="0"
-        content-cols="12"
-        label=""
-        label-align="right"
-        class="kawa_indicators p-0"
-      >
-        <HandAndMeldedBlocks
-          :hand_tiles="hand_tiles"
-          :melded_blocks="[]"
-          size="lg"
-        />
-      </b-form-group>
       <!-- 打牌一覧 -->
       <b-row v-if="!showGraph && !is_show_graph" class="mt-2">
         <b-col>
@@ -187,7 +174,6 @@ export default {
 
       let xlabel = this.line_options.find((x) => x.value == this.line_type)
         .text;
-      console.log(req.turn);
       let options = {
         annotation: {
           annotations: [

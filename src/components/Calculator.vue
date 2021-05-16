@@ -1,6 +1,28 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tab_index">
     <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+        {{ turn }} / 18 巡目
+      </span>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+        ツモ
+        <TileImage
+          v-if="tsumo_indicators.length > 0"
+          :tile="tsumo_indicators[tsumo_indicators.length - 1]"
+        />
+        <TileImage v-if="tsumo_indicators.length <= 0" :tile="-1" />
+      </span>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+        ドラ表示
+        <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
+      </span>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ shanten }} </span>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+        {{ tile2String(bakaze) }}場
+      </span>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+        {{ tile2String(zikaze) }}家
+      </span>
       <b-form-group
         label-cols="0"
         content-cols="12"
@@ -15,45 +37,6 @@
           size="lg"
         />
       </b-form-group>
-      <b-form-group
-        label-cols="0"
-        content-cols="12"
-        label=""
-        label-align="right"
-        class="kawa_indicators p-0"
-      >
-        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-          ドラ表示牌
-          <TileImage
-            v-for="(tile, i) in dora_indicators"
-            :key="i"
-            :tile="tile"
-          />
-        </span>
-        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-          ツモ
-          <TileImage
-            v-if="tsumo_indicators.length > 0"
-            :tile="tsumo_indicators[tsumo_indicators.length - 1]"
-          />
-          <TileImage v-if="tsumo_indicators.length <= 0" :tile="-1" />
-        </span>
-        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-          捨牌
-          <TileImage
-            v-if="kawa_indicators.length > 0"
-            :tile="kawa_indicators[kawa_indicators.length - 1]"
-          />
-          <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
-        </span>
-        <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ turn }} 巡目 </span
-        ><span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ shanten }} </span
-        ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
-          {{ tile2String(bakaze) }}場 </span
-        ><span style="padding: 1.2em 0.4em 1.2em 0.4em">
-          {{ tile2String(zikaze) }}家
-        </span>
-      </b-form-group>
       <b-overlay :show="is_calculating" rounded="sm">
         <template #overlay>
           <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
@@ -62,6 +45,19 @@
       </b-overlay>
       <b-tabs content-class="mt-3" v-if="turn > 1" v-model="score_tab_index">
         <b-tab title="打牌詳細" class="p-0">
+          <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+            <TileImage
+              v-if="kawa_indicators.length > 0"
+              :tile="kawa_indicators[kawa_indicators.length - 1]"
+            />
+            <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
+            ←
+            <TileImage
+              v-for="(tile, i) in pre_hand_tiles"
+              :key="i"
+              :tile="tile"
+            />
+          </span>
           <Result
             :result="pre_result"
             :is_show_graph="false"
@@ -74,6 +70,20 @@
           />
         </b-tab>
         <b-tab title="打牌グラフ" class="p-0">
+          <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+            <TileImage
+              v-if="kawa_indicators.length > 0"
+              :tile="kawa_indicators[kawa_indicators.length - 1]"
+            />
+            <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
+            ←
+            <TileImage
+              v-for="(tile, i) in pre_hand_tiles"
+              :key="i"
+              :tile="tile"
+            />
+          </span>
+          <hr />
           <Result
             :result="pre_result"
             :is_show_graph="true"
@@ -91,17 +101,6 @@
       <b-form-group
         label-cols="1"
         content-cols="11"
-        label="シード"
-        label-align="right"
-        class="kawa_indicators p-0"
-      >
-        <legend class="col-form-label">
-          {{ seed }}
-        </legend>
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
         label="配牌"
         label-align="right"
         class="kawa_indicators p-0"
@@ -111,6 +110,17 @@
           :melded_blocks="melded_blocks"
           size="lg"
         />
+      </b-form-group>
+      <b-form-group
+        label-cols="1"
+        content-cols="11"
+        label="シード"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <legend class="col-form-label">
+          {{ seed }}
+        </legend>
       </b-form-group>
       <hr />
       <b-form-group
@@ -208,7 +218,7 @@
           赤牌、裏ドラ、ダブル立直、一発、海底撈月、向聴戻し、手変わり
           を点数計算に考慮します。
         </li>
-        <li>子の点数で計算します。</li>
+        <li>東場 / 東家。親の点数で計算します。</li>
       </ul>
 
       <hr />
@@ -296,7 +306,7 @@ export default {
 
       // data
       bakaze: Tile.Ton, // 場風
-      zikaze: Tile.Nan, // 自風
+      zikaze: Tile.Ton, // 自風
       turn: 1, // 現在の巡目
       syanten_type: SyantenType.Normal, // 手牌の種類
       dora_indicators: [], // ドラ
