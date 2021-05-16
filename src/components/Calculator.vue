@@ -11,7 +11,7 @@
             key="Twitter"
             network="Twitter"
             :url="state_url"
-            hashtags="麻雀打牌精度チェッカー"
+            hashtags="牌効率チェッカー"
             :title="state_info"
             :class="['Twitter', 'social-button']"
           >
@@ -245,8 +245,8 @@
       </b-overlay>
     </b-tab>
     <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
-      <h4>打牌精度チェッカー</h4>
-      打牌精度のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！
+      <h4>牌効率チェッカー</h4>
+      牌効率のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！
       <hr />
       <h4>遊び方</h4>
       <ul>
@@ -275,8 +275,8 @@
             key="Twitter"
             network="Twitter"
             :url="state_url_pure"
-            hashtags="麻雀打牌精度チェッカー"
-            title="打牌精度チェッカーで、打牌精度をチェック！"
+            hashtags="牌効率チェッカー"
+            title="牌効率チェッカーで、牌効率をチェック！"
             :class="['Twitter', 'social-button']"
           >
             Twitter
