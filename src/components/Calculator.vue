@@ -29,14 +29,6 @@
         {{ turn }} / 18 巡目
       </span>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        ツモ
-        <TileImage
-          v-if="tsumo_indicators.length > 0"
-          :tile="tsumo_indicators[tsumo_indicators.length - 1]"
-        />
-        <TileImage v-if="tsumo_indicators.length <= 0" :tile="-1" />
-      </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         ドラ表示
         <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
       </span>
@@ -56,6 +48,11 @@
       >
         <HandAndMeldedBlocks
           v-on:remove-tile="next_tile"
+          :tsumo="
+            tsumo_indicators.length === 0
+              ? -1
+              : tsumo_indicators[tsumo_indicators.length - 1]
+          "
           :hand_tiles="hand_tiles"
           :melded_blocks="melded_blocks"
           size="lg"

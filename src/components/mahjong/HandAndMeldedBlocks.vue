@@ -1,7 +1,6 @@
 <template>
-  <div class="hand_and_melded_blocks">
-    <!-- 手牌 -->
-    <div class="hand_tiles">
+  <div>
+    <div class="hand_tiles" v-if="tsumo === -1">
       <TileButton
         v-on:add-tile="remove_tile"
         v-for="(tile, i) in hand_tiles"
@@ -10,26 +9,41 @@
         size="lg"
       />
     </div>
-    <!-- 副露ブロックの一覧 -->
-    <BlockButton
-      v-on:add-block="remove_block"
-      v-for="(block, i) in melded_blocks.slice().reverse()"
-      :key="i"
-      :block="block"
-      size="lg"
-    />
+    <div class="hand_tiles" v-if="tsumo !== -1">
+      <TileButton
+        v-on:add-tile="remove_tile"
+        v-for="(tile, i) in hand_tiles_without_tsumo"
+        :key="i"
+        :tile="tile"
+        size="lg"
+      />
+      <span style="padding: 0.5em"></span>
+      <TileButton v-on:add-tile="remove_tile" :tile="tsumo" size="lg" />
+    </div>
   </div>
 </template>
 
 <script>
 import TileButton from "./TileButton.vue";
-import BlockButton from "./BlockButton.vue";
 
 export default {
   name: "HandAndMeldedBlocks",
   components: {
     TileButton,
-    BlockButton,
+  },
+  computed: {
+    hand_tiles_without_tsumo() {
+      let result = [];
+      let removed = false;
+      for (let tile of this.hand_tiles) {
+        if (!removed && tile === this.tsumo) {
+          removed = true;
+        } else {
+          result.push(tile);
+        }
+      }
+      return result;
+    },
   },
   props: {
     hand_tiles: {
@@ -43,6 +57,10 @@ export default {
     size: {
       type: String,
       default: "sm",
+    },
+    tsumo: {
+      type: Number,
+      default: -1,
     },
   },
   methods: {
@@ -58,12 +76,6 @@ export default {
 </script>
 
 <style scoped>
-.hand_and_melded_blocks {
-}
-
-.hand_and_melded_blocks > * {
-}
-
 .hand_tiles {
   display: flex;
   flex-wrap: wrap;
