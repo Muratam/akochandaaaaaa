@@ -1,6 +1,16 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tab_index">
     <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+      <div v-if="turn >= 18 || is_agari">
+        <b> リザルト </b>
+        <br />
+        {{ state_info }}
+        <br />
+        <b-button class="mr-2" variant="primary" @click="set_random_hand"
+          >次の盤面で遊ぶ
+        </b-button>
+        <hr />
+      </div>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         {{ turn }} / 18 巡目
       </span>
@@ -427,6 +437,15 @@ export default {
     n_hand_tiles() {
       return this.hand_tiles.length + this.melded_blocks.length * 3;
     },
+    //
+    state_info() {
+      return `シード ${this.seed}(${
+        this.tsumo_mode === 0 ? "通常モード" : "字牌自摸らずモード"
+      })で、 期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率
+        ${(this.agari_score_rate * 100).toFixed(0)} %・聴牌値
+        ${(this.tempai_score_rate * 100).toFixed(0)} % の打牌をして、
+        ${this.shanten}！`;
+    },
     // 各牌の残り枚数
     tile_counts() {
       // 初期化する。
@@ -482,7 +501,7 @@ export default {
       let data = JSON.stringify({
         zikaze: this.zikaze,
         bakaze: this.bakaze,
-        turn: this.turn,
+        turn: Math.min(17, this.turn),
         syanten_type: this.syanten_type,
         dora_indicators: this.dora_indicators,
         flag: this.flag.reduce((a, x) => (a += x), 0) + this.maximize_target,
@@ -533,6 +552,9 @@ export default {
 
     /// 牌を手牌から次のにする
     next_tile(tile) {
+      if (this.turn >= 18 || this.is_agari) {
+        return;
+      }
       this.pre_hand_tiles.splice(0, this.pre_hand_tiles.length);
       for (let hand of this.hand_tiles) {
         this.pre_hand_tiles.push(hand);
@@ -544,7 +566,6 @@ export default {
       yama_index++;
       this.turn++;
       this.calculate();
-      // 18になったらしっぱい
       if (this.pre_result && this.pre_result.success) {
         (() => {
           let max_exp_value = 0;
