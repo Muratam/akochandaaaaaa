@@ -490,7 +490,7 @@ export default {
     state_info() {
       return `期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率${(
         this.agari_score_rate * 100
-      ).toFixed(0)} %・聴牌値${(this.tempai_score_rate * 100).toFixed(
+      ).toFixed(0)} %・聴牌率${(this.tempai_score_rate * 100).toFixed(
         0
       )} % の打牌をして、${this.shanten}！(シード ${this.seed} ・${
         this.tsumo_mode === 0 ? "通常モード" : "字牌自摸らずモード"
@@ -499,7 +499,7 @@ export default {
     state_info_without_config() {
       return `期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率${(
         this.agari_score_rate * 100
-      ).toFixed(0)} %・聴牌値${(this.tempai_score_rate * 100).toFixed(
+      ).toFixed(0)} %・聴牌率${(this.tempai_score_rate * 100).toFixed(
         0
       )} % の打牌をして、${this.shanten}！`;
     },
