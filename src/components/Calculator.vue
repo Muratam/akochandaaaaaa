@@ -37,65 +37,90 @@
           size="lg"
         />
       </b-form-group>
+      <b> スコア </b>
+      <div
+        class="progress"
+        style="max-width: 50em; height: 1.8em; margin: 0.2em"
+      >
+        <div
+          class="progress-bar"
+          :style="
+            'width:' +
+            (expected_score_rate * 100).toFixed(0) +
+            '%; text-align: left; padding-left: 1em'
+          "
+        >
+          期待値：{{ (expected_score_rate * 100).toFixed(0) }} % (x{{
+            expected_score_rate_rate.toFixed(2)
+          }})
+        </div>
+      </div>
+      <div
+        class="progress"
+        style="max-width: 50em; height: 1.8em; margin: 0.2em"
+      >
+        <div
+          class="progress-bar"
+          :style="
+            'width:' +
+            (agari_score_rate * 100).toFixed(0) +
+            '%; text-align: left; padding-left: 1em'
+          "
+        >
+          和了率：{{ (agari_score_rate * 100).toFixed(0) }}% (x{{
+            agari_score_rate_rate.toFixed(2)
+          }})
+        </div>
+      </div>
+      <div
+        class="progress"
+        style="max-width: 50em; height: 1.8em; margin: 0.2em"
+      >
+        <div
+          class="progress-bar"
+          :style="
+            'width:' +
+            (tempai_score_rate * 100).toFixed(0) +
+            '%; text-align: left; padding-left: 1em'
+          "
+        >
+          聴牌率：{{ (tempai_score_rate * 100).toFixed(0) }}% (x{{
+            tempai_score_rate_rate.toFixed(2)
+          }})
+        </div>
+      </div>
       <b-overlay :show="is_calculating" rounded="sm">
         <template #overlay>
           <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
           <p>計算中</p>
         </template>
       </b-overlay>
-      <b-tabs content-class="mt-3" v-if="turn > 1" v-model="score_tab_index">
-        <b-tab title="打牌詳細" class="p-0">
-          <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-            <TileImage
-              v-if="kawa_indicators.length > 0"
-              :tile="kawa_indicators[kawa_indicators.length - 1]"
-            />
-            <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
-            ←
-            <TileImage
-              v-for="(tile, i) in pre_hand_tiles"
-              :key="i"
-              :tile="tile"
-            />
-          </span>
-          <Result
-            :result="pre_result"
-            :is_show_graph="false"
-            :hand_tiles="pre_hand_tiles"
-            :selected_tile="
-              kawa_indicators.length > 0
-                ? kawa_indicators[kawa_indicators.length - 1]
-                : -1
-            "
+      <template v-if="turn > 1">
+        <hr />
+        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
+          <TileImage
+            v-if="kawa_indicators.length > 0"
+            :tile="kawa_indicators[kawa_indicators.length - 1]"
           />
-        </b-tab>
-        <b-tab title="打牌グラフ" class="p-0">
-          <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-            <TileImage
-              v-if="kawa_indicators.length > 0"
-              :tile="kawa_indicators[kawa_indicators.length - 1]"
-            />
-            <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
-            ←
-            <TileImage
-              v-for="(tile, i) in pre_hand_tiles"
-              :key="i"
-              :tile="tile"
-            />
-          </span>
-          <hr />
-          <Result
-            :result="pre_result"
-            :is_show_graph="true"
-            :hand_tiles="pre_hand_tiles"
-            :selected_tile="
-              kawa_indicators.length > 0
-                ? kawa_indicators[kawa_indicators.length - 1]
-                : -1
-            "
+          <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
+          ←
+          <TileImage
+            v-for="(tile, i) in pre_hand_tiles"
+            :key="i"
+            :tile="tile"
           />
-        </b-tab>
-      </b-tabs>
+        </span>
+        <Result
+          :result="pre_result"
+          :is_show_graph="false"
+          :hand_tiles="pre_hand_tiles"
+          :selected_tile="
+            kawa_indicators.length > 0
+              ? kawa_indicators[kawa_indicators.length - 1]
+              : -1
+          "
+        />
+      </template>
     </b-tab>
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <b-form-group
@@ -206,7 +231,9 @@
           を改変した、一人麻雀の練習ができるサイトです。
         </li>
         <li>
-          期待値を最大化するように捨て牌を選択していき、どの程度損失があったかを競います。
+          牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
+          例えば期待値スコアであれば、「最大期待値になる捨牌に対するあなたの捨牌の期待値の割合」が計算されます。
+          最後まで100%であれば、各時点で期待値が最大となる打牌ができています。
         </li>
       </ul>
 
@@ -326,6 +353,13 @@ export default {
       Hand2String: Hand2String,
       seed: Math.floor(0x100000000 * Math.random()),
       next_seed: Math.floor(0x100000000 * Math.random()),
+      // スコア倍率
+      expected_score_rate: 1,
+      agari_score_rate: 1,
+      tempai_score_rate: 1,
+      expected_score_rate_rate: 1,
+      agari_score_rate_rate: 1,
+      tempai_score_rate_rate: 1,
       // オプション
       // 場風
       input_bakaze_options: [
@@ -475,6 +509,12 @@ export default {
       this.kawa_indicators.splice(0, this.kawa_indicators.length);
       this.tsumo_indicators.splice(0, this.tsumo_indicators.length);
       this.result = null;
+      this.expected_score_rate = 1;
+      this.agari_score_rate = 1;
+      this.tempai_score_rate = 1;
+      this.expected_score_rate_rate = 1;
+      this.agari_score_rate_rate = 1;
+      this.tempai_score_rate_rate = 1;
     },
 
     /// 長さ34の配列形式にする。
@@ -505,6 +545,47 @@ export default {
       this.turn++;
       this.calculate();
       // 18になったらしっぱい
+      if (this.pre_result && this.pre_result.success) {
+        (() => {
+          let max_exp_value = 0;
+          let max_tenpai_prob = 0;
+          let max_win_prob = 0;
+          let selected_exp_value = 0;
+          let selected_tenpai_prob = 0;
+          let selected_win_prob = 0;
+          for (let cand of this.pre_result.response.candidates) {
+            if (!cand.exp_values) return;
+            if (!cand.tenpai_probs) return;
+            if (!cand.win_probs) return;
+            let exp_value = cand.exp_values[this.turn];
+            let tenpai_prob = cand.tenpai_probs[this.turn];
+            let win_prob = cand.win_probs[this.turn];
+            max_exp_value = Math.max(max_exp_value, exp_value);
+            max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
+            max_win_prob = Math.max(max_win_prob, win_prob);
+            if (cand.tile === tile) {
+              selected_exp_value = exp_value;
+              selected_tenpai_prob = tenpai_prob;
+              selected_win_prob = win_prob;
+            }
+          }
+          this.expected_score_rate_rate = selected_exp_value / max_exp_value;
+          this.agari_score_rate_rate = selected_win_prob / max_win_prob;
+          this.tempai_score_rate_rate = selected_tenpai_prob / max_tenpai_prob;
+          if (isNaN(this.expected_score_rate_rate)) {
+            this.expected_score_rate_rate = 1;
+          }
+          if (isNaN(this.agari_score_rate_rate)) {
+            this.agari_score_rate_rate = 1;
+          }
+          if (isNaN(this.tempai_score_rate_rate)) {
+            this.tempai_score_rate_rate = 1;
+          }
+          this.expected_score_rate *= this.expected_score_rate_rate;
+          this.agari_score_rate *= this.agari_score_rate_rate;
+          this.tempai_score_rate *= this.tempai_score_rate_rate;
+        })();
+      }
     },
 
     /// 牌を副露ブロックの一覧に追加する。
