@@ -254,15 +254,12 @@
           ここは
           <a
             href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
-            class="text-info"
             >https://pystyle.info/apps/mahjong-nanikiru-simulator/</a
           >
           を改変した、一人麻雀の練習ができるサイトです。 (
-          <b-link
+          <a
             href="https://github.com/Muratam/akochandaaaaaa"
-            target="_blank"
-            class="text-info"
-            >GitHub</b-link
+            >GitHub</a
           >
           )
         </li>
@@ -270,6 +267,10 @@
           牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
           例えば期待値スコアであれば、「最大期待値になる捨牌に対するあなたの捨牌の期待値の割合」が計算されます。
           最後まで100%であれば、各時点で期待値が最大となる打牌ができています。
+        </li>
+        <li>
+          正常に動作しない場合は<a href="../akochandaaaaa-mobile/">省メモリ版</a> を、
+          逆に速度が遅い場合は<a href="../akochandaaaaa/">メモリ使用高速化版</a> を、活用ください
         </li>
         <li>
           <ShareNetwork
