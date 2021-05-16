@@ -11,7 +11,7 @@
             key="Twitter"
             network="Twitter"
             :url="state_url"
-            hashtags="雀打牌精度チェッカー"
+            hashtags="麻雀打牌精度チェッカー"
             :title="state_info"
             :class="['Twitter', 'social-button']"
           >
@@ -276,7 +276,7 @@
             key="Twitter"
             network="Twitter"
             :url="state_url_pure"
-            hashtags="雀打牌精度チェッカー"
+            hashtags="麻雀打牌精度チェッカー"
             title="打牌精度チェッカーで、打牌精度をチェック！"
             :class="['Twitter', 'social-button']"
           >
@@ -506,11 +506,11 @@ export default {
     },
     state_url() {
       let url = new URL(window.location.href);
-      return `${url.origin}${url.pathname}/?q=${this.seed}&c=${this.tsumo_mode}`;
+      return `${url.origin}${url.pathname}?q=${this.seed}&c=${this.tsumo_mode}`;
     },
     state_url_pure() {
       let url = new URL(window.location.href);
-      return `${url.origin}${url.pathname}/`;
+      return `${url.origin}${url.pathname}`;
     },
     // 各牌の残り枚数
     tile_counts() {
