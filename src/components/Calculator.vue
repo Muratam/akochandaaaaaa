@@ -2,13 +2,27 @@
   <b-tabs content-class="mt-3" v-model="tab_index">
     <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
       <div v-if="turn >= 18 || is_agari">
-        <b> リザルト </b>
-        <br />
-        {{ state_info }}
-        <br />
-        <b-button class="mr-2" variant="primary" @click="set_random_hand"
-          >次の盤面で遊ぶ
-        </b-button>
+        <h5><b>リザルト</b></h5>
+        <div style="padding: 0em 0em 1em 0em">
+          <b>{{ state_info_without_config }} </b>
+        </div>
+        <div style="padding: 0em 0em 1em 0em">
+          <ShareNetwork
+            key="Twitter"
+            network="Twitter"
+            :url="state_url"
+            hashtags="雀打牌精度チェッカー"
+            :title="state_info"
+            :class="['Twitter', 'social-button']"
+          >
+            つぶやく
+          </ShareNetwork>
+        </div>
+        <div>
+          <b-button class="mr-2" variant="primary" @click="set_random_hand"
+            >次の盤面へ
+          </b-button>
+        </div>
         <hr />
       </div>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
@@ -231,19 +245,43 @@
       </b-overlay>
     </b-tab>
     <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
+      <h4>打牌精度チェッカー</h4>
+      打牌精度のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！
+      <hr />
       <h4>遊び方</h4>
       <ul>
         <li>
           ここは
-          <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
+          <a
+            href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
+            class="text-info"
             >https://pystyle.info/apps/mahjong-nanikiru-simulator/</a
           >
-          を改変した、一人麻雀の練習ができるサイトです。
+          を改変した、一人麻雀の練習ができるサイトです。 (
+          <b-link
+            href="https://github.com/Muratam/akochandaaaaaa"
+            target="_blank"
+            class="text-info"
+            >GitHub</b-link
+          >
+          )
         </li>
         <li>
           牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
           例えば期待値スコアであれば、「最大期待値になる捨牌に対するあなたの捨牌の期待値の割合」が計算されます。
           最後まで100%であれば、各時点で期待値が最大となる打牌ができています。
+        </li>
+        <li>
+          <ShareNetwork
+            key="Twitter"
+            network="Twitter"
+            :url="state_url_pure"
+            hashtags="雀打牌精度チェッカー"
+            title="打牌精度チェッカーで、打牌精度をチェック！"
+            :class="['Twitter', 'social-button']"
+          >
+            Twitter
+          </ShareNetwork>
         </li>
       </ul>
 
@@ -336,6 +374,18 @@ export default {
     TileImage,
   },
   data() {
+    let next_seed = new URL(window.location.href).searchParams.get("q");
+    if (!next_seed || isNaN(+next_seed)) {
+      next_seed = Math.floor(0x100000000 * Math.random());
+    } else {
+      next_seed = +next_seed;
+    }
+    let tsumo_mode = new URL(window.location.href).searchParams.get("c");
+    if (!tsumo_mode || isNaN(+tsumo_mode)) {
+      tsumo_mode = 0;
+    } else {
+      tsumo_mode = +tsumo_mode === 0 ? 0 : 1;
+    }
     return {
       // Description
       tab_index: 0,
@@ -351,7 +401,7 @@ export default {
       tsumo_indicators: [], // 自摸牌
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
-      tsumo_mode: 0,
+      tsumo_mode: tsumo_mode,
       haipai_tiles: [], // 配牌
       hand_tiles: [], // 手牌
       pre_hand_tiles: [], // 一手前の手牌
@@ -362,7 +412,7 @@ export default {
       select_tab: 0,
       Hand2String: Hand2String,
       seed: Math.floor(0x100000000 * Math.random()),
-      next_seed: Math.floor(0x100000000 * Math.random()),
+      next_seed: next_seed,
       // スコア倍率
       expected_score_rate: 1,
       agari_score_rate: 1,
@@ -439,12 +489,28 @@ export default {
     },
     //
     state_info() {
-      return `シード ${this.seed}(${
+      return `期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率${(
+        this.agari_score_rate * 100
+      ).toFixed(0)} %・聴牌値${(this.tempai_score_rate * 100).toFixed(
+        0
+      )} % の打牌をして、${this.shanten}！(シード ${this.seed} ・${
         this.tsumo_mode === 0 ? "通常モード" : "字牌自摸らずモード"
-      })で、 期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率
-        ${(this.agari_score_rate * 100).toFixed(0)} %・聴牌値
-        ${(this.tempai_score_rate * 100).toFixed(0)} % の打牌をして、
-        ${this.shanten}！`;
+      })`;
+    },
+    state_info_without_config() {
+      return `期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率${(
+        this.agari_score_rate * 100
+      ).toFixed(0)} %・聴牌値${(this.tempai_score_rate * 100).toFixed(
+        0
+      )} % の打牌をして、${this.shanten}！`;
+    },
+    state_url() {
+      let url = new URL(window.location.href);
+      return `${url.origin}${url.pathname}/?q=${this.seed}&c=${this.tsumo_mode}`;
+    },
+    state_url_pure() {
+      let url = new URL(window.location.href);
+      return `${url.origin}${url.pathname}/`;
     },
     // 各牌の残り枚数
     tile_counts() {
