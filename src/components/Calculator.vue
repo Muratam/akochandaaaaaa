@@ -1,7 +1,7 @@
 <template>
   <b-tabs content-class="mt-3" v-model="tab_index">
     <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
-      <div v-if="turn >= 18 || is_agari">
+      <div v-if="ban.turn >= 18 || is_agari">
         <h5><b>リザルト</b></h5>
         <div style="padding: 0em 0em 1em 0em">
           <b>{{ state_info_without_config }} </b>
@@ -26,7 +26,7 @@
         <hr />
       </div>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        {{ turn }} / 18 巡目
+        {{ ban.turn }} / 18 巡目
       </span>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         ドラ表示
@@ -39,27 +39,27 @@
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         {{ tile2String(zikaze) }}家
       </span>
-      <!-- <b-button class="mr-2" variant="light" @click="reset_hand"
-        >一手戻す
-      </b-button> -->
       <b-button class="mr-2" variant="light" @click="reset_hand"
         >はじめから
+      </b-button>
+      <b-button v-if="pre_ban" class="mr-2" variant="light" @click="back_hand"
+        >一手戻す
       </b-button>
       <b-form-group
         label-cols="0"
         content-cols="12"
         label=""
         label-align="right"
-        class="kawa_indicators p-0"
+        class="ban.kawa_indicators p-0"
       >
         <HandAndMeldedBlocks
           v-on:remove-tile="next_tile"
           :tsumo="
-            tsumo_indicators.length === 0
+            ban.tsumo_indicators.length === 0
               ? -1
-              : tsumo_indicators[tsumo_indicators.length - 1]
+              : ban.tsumo_indicators[ban.tsumo_indicators.length - 1]
           "
-          :hand_tiles="hand_tiles"
+          :hand_tiles="ban.hand_tiles"
           :melded_blocks="melded_blocks"
           size="lg"
         />
@@ -70,15 +70,15 @@
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
       >
         <div
-          :class="['progress-bar']"
+          :class="['progress-bar', itte_modoshita ? 'bg-secondary' : '']"
           :style="
             'width:' +
-            (expected_score_rate * 100).toFixed(0) +
+            (ban.expected_score_rate * 100).toFixed(0) +
             '%; text-align: left; padding-left: 1em'
           "
         >
-          期待値：{{ (expected_score_rate * 100).toFixed(0) }} % (x{{
-            expected_score_rate_rate.toFixed(2)
+          期待値：{{ (ban.expected_score_rate * 100).toFixed(0) }} % (x{{
+            ban.expected_score_rate_rate.toFixed(2)
           }})
         </div>
       </div>
@@ -87,15 +87,15 @@
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
       >
         <div
-          :class="['progress-bar']"
+          :class="['progress-bar', itte_modoshita ? 'bg-secondary' : '']"
           :style="
             'width:' +
-            (agari_score_rate * 100).toFixed(0) +
+            (ban.agari_score_rate * 100).toFixed(0) +
             '%; text-align: left; padding-left: 1em'
           "
         >
-          和了率：{{ (agari_score_rate * 100).toFixed(0) }} % (x{{
-            agari_score_rate_rate.toFixed(2)
+          和了率：{{ (ban.agari_score_rate * 100).toFixed(0) }} % (x{{
+            ban.agari_score_rate_rate.toFixed(2)
           }})
         </div>
       </div>
@@ -104,15 +104,15 @@
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
       >
         <div
-          :class="['progress-bar']"
+          :class="['progress-bar', itte_modoshita ? 'bg-secondary' : '']"
           :style="
             'width:' +
-            (tempai_score_rate * 100).toFixed(0) +
+            (ban.tempai_score_rate * 100).toFixed(0) +
             '%; text-align: left; padding-left: 1em'
           "
         >
-          聴牌率：{{ (tempai_score_rate * 100).toFixed(0) }} % (x{{
-            tempai_score_rate_rate.toFixed(2)
+          聴牌率：{{ (ban.tempai_score_rate * 100).toFixed(0) }} % (x{{
+            ban.tempai_score_rate_rate.toFixed(2)
           }})
         </div>
       </div>
@@ -122,28 +122,28 @@
           <p>計算中</p>
         </template>
       </b-overlay>
-      <template v-if="turn > 1">
+      <template v-if="ban.turn > 1">
         <hr />
         <span style="padding: 1.2em 0.4em 1.2em 0.4em">
           <TileImage
-            v-if="kawa_indicators.length > 0"
-            :tile="kawa_indicators[kawa_indicators.length - 1]"
+            v-if="ban.kawa_indicators.length > 0"
+            :tile="ban.kawa_indicators[ban.kawa_indicators.length - 1]"
           />
-          <TileImage v-if="kawa_indicators.length <= 0" :tile="-1" />
+          <TileImage v-if="ban.kawa_indicators.length <= 0" :tile="-1" />
           ←
           <TileImage
-            v-for="(tile, i) in pre_hand_tiles"
+            v-for="(tile, i) in ban.pre_hand_tiles"
             :key="i"
             :tile="tile"
           />
         </span>
         <Result
-          :result="pre_result"
+          :result="ban.pre_result"
           :is_show_graph="false"
-          :hand_tiles="pre_hand_tiles"
+          :hand_tiles="ban.pre_hand_tiles"
           :selected_tile="
-            kawa_indicators.length > 0
-              ? kawa_indicators[kawa_indicators.length - 1]
+            ban.kawa_indicators.length > 0
+              ? ban.kawa_indicators[ban.kawa_indicators.length - 1]
               : -1
           "
         />
@@ -156,7 +156,7 @@
         content-cols="10"
         label="盤面URL"
         label-align="right"
-        class="kawa_indicators p-0"
+        class="ban.kawa_indicators p-0"
       >
         <legend class="col-form-label">
           <a :href="state_url" target="”_blank”">
@@ -169,7 +169,7 @@
         content-cols="10"
         label="シード"
         label-align="right"
-        class="kawa_indicators p-0"
+        class="ban.kawa_indicators p-0"
       >
         <legend class="col-form-label">
           {{ seed }}
@@ -180,7 +180,7 @@
         content-cols="10"
         label="自摸モード"
         label-align="right"
-        class="kawa_indicators p-0"
+        class="ban.kawa_indicators p-0"
       >
         <legend class="col-form-label">
           {{ tsumo_mode_options[tsumo_mode]["text"] }}
@@ -191,7 +191,7 @@
         content-cols="10"
         label="配牌"
         label-align="right"
-        class="kawa_indicators p-0"
+        class="ban.kawa_indicators p-0"
       >
         <HandAndMeldedBlocks
           :hand_tiles="haipai_tiles"
@@ -417,38 +417,41 @@ export default {
     return {
       // Description
       tab_index: 0,
-      score_tab_index: 0,
-
       // data
       bakaze: Tile.Ton, // 場風
       zikaze: Tile.Ton, // 自風
-      turn: 1, // 現在の巡目
       syanten_type: SyantenType.Normal, // 手牌の種類
-      dora_indicators: [], // ドラ
-      kawa_indicators: [], // 河
-      tsumo_indicators: [], // 自摸牌
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
       tsumo_mode: tsumo_mode,
       next_tsumo_mode: tsumo_mode,
       haipai_tiles: [], // 配牌
-      hand_tiles: [], // 手牌
-      pre_hand_tiles: [], // 一手前の手牌
+      dora_indicators: [], // ドラ
       melded_blocks: [], // 副露ブロックの一覧
-      result: null, // 結果
-      pre_result: null, // 一手前の結果
-      is_calculating: false,
       select_tab: 0,
       Hand2String: Hand2String,
       seed: Math.floor(0x100000000 * Math.random()),
       next_seed: next_seed,
-      // スコア倍率
-      expected_score_rate: 1,
-      agari_score_rate: 1,
-      tempai_score_rate: 1,
-      expected_score_rate_rate: 1,
-      agari_score_rate_rate: 1,
-      tempai_score_rate_rate: 1,
+      is_calculating: false,
+      // BEGIN: 盤面
+      ban: {
+        expected_score_rate: 1,
+        agari_score_rate: 1,
+        tempai_score_rate: 1,
+        expected_score_rate_rate: 1,
+        agari_score_rate_rate: 1,
+        tempai_score_rate_rate: 1,
+        turn: 1, // 現在の巡目
+        kawa_indicators: [], // 河
+        tsumo_indicators: [], // 自摸牌
+        hand_tiles: [], // 手牌
+        result: null, // 結果
+        pre_hand_tiles: [], // 一手前の手牌
+        pre_result: null, // 一手前の結果
+      },
+      pre_ban: "",
+      itte_modoshita: false,
+      // END: 現在の状態
       // オプション
       // 場風
       input_bakaze_options: [
@@ -514,27 +517,23 @@ export default {
   computed: {
     // 手牌の枚数
     n_hand_tiles() {
-      return this.hand_tiles.length + this.melded_blocks.length * 3;
+      return this.ban.hand_tiles.length + this.melded_blocks.length * 3;
     },
     yama_index() {
-      return this.turn + 14;
+      return this.ban.turn + 14;
     },
     //
     state_info() {
-      return `期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率${(
-        this.agari_score_rate * 100
-      ).toFixed(0)} %・聴牌率${(this.tempai_score_rate * 100).toFixed(
-        0
-      )} % の打牌をして、${this.shanten}！(シード ${this.seed} ・${
+      return `${this.state_info_without_config}(シード ${this.seed} ・${
         this.tsumo_mode === 0 ? "通常モード" : "字牌自摸らずモード"
       })`;
     },
     state_info_without_config() {
-      return `期待値 ${(this.expected_score_rate * 100).toFixed(0)} %・和了率${(
-        this.agari_score_rate * 100
-      ).toFixed(0)} %・聴牌率${(this.tempai_score_rate * 100).toFixed(
+      return `期待値 ${(this.ban.expected_score_rate * 100).toFixed(
         0
-      )} % の打牌をして、${this.shanten}！`;
+      )} %・和了率${(this.ban.agari_score_rate * 100).toFixed(0)} %・聴牌率${(
+        this.ban.tempai_score_rate * 100
+      ).toFixed(0)} % の打牌をして、${this.shanten}！`;
     },
     state_url() {
       return `${this.state_url_pure}?q=${this.seed}&c=${this.tsumo_mode}`;
@@ -561,23 +560,26 @@ export default {
       // ドラ表示牌を除く
       this.dora_indicators.forEach(minus_tile);
       // 手牌を除く
-      this.hand_tiles.forEach(minus_tile);
+      this.ban.hand_tiles.forEach(minus_tile);
       // 副露ブロックを除く
       this.melded_blocks.forEach((block) => block.tiles.forEach(minus_tile));
       return counts;
     },
     shanten() {
-      if (!this.result) return "?向聴";
-      if (!this.result.success) {
+      if (!this.ban.result) return "?向聴";
+      if (!this.ban.result.success) {
         if (this.is_agari) return "和了";
         else return "?向聴";
       }
-      if (this.result.response.syanten == 0) return "聴牌";
-      return this.result.response.syanten + "向聴";
+      if (this.ban.result.response.syanten == 0) return "聴牌";
+      return this.ban.result.response.syanten + "向聴";
     },
     is_agari() {
-      if (!this.result) return false;
-      if (!this.result.success && this.result.err_msg === "和了形です。") {
+      if (!this.ban.result) return false;
+      if (
+        !this.ban.result.success &&
+        this.ban.result.err_msg === "和了形です。"
+      ) {
         return true;
       }
       return false;
@@ -607,21 +609,21 @@ export default {
     },
     calculate() {
       this.is_calculating = true;
-      this.pre_result = this.result;
-      this.result = null;
+      this.ban.pre_result = this.ban.result;
+      this.ban.result = null;
       let data = JSON.stringify({
         zikaze: this.zikaze,
         bakaze: this.bakaze,
-        turn: Math.min(17, this.turn),
+        turn: Math.min(17, this.ban.turn),
         syanten_type: this.syanten_type,
         dora_indicators: this.dora_indicators,
         flag: this.flag.reduce((a, x) => (a += x), 0) + this.maximize_target,
-        hand_tiles: this.hand_tiles,
+        hand_tiles: this.ban.hand_tiles,
         melded_blocks: this.melded_blocks,
       });
       let impl = () => {
         if (window["Module"].process_request) {
-          this.result = JSON.parse(window["Module"].process_request(data));
+          this.ban.result = JSON.parse(window["Module"].process_request(data));
           this.is_calculating = false;
         } else {
           requestIdleCallback(impl);
@@ -632,19 +634,19 @@ export default {
 
     /// 手牌を初期化する。
     clear_hand() {
-      this.hand_tiles.splice(0, this.hand_tiles.length);
-      this.pre_hand_tiles.splice(0, this.pre_hand_tiles.length);
+      this.ban.hand_tiles.splice(0, this.ban.hand_tiles.length);
+      this.ban.pre_hand_tiles.splice(0, this.ban.pre_hand_tiles.length);
       this.melded_blocks.splice(0, this.melded_blocks.length);
       this.dora_indicators.splice(0, this.dora_indicators.length);
-      this.kawa_indicators.splice(0, this.kawa_indicators.length);
-      this.tsumo_indicators.splice(0, this.tsumo_indicators.length);
-      this.result = null;
-      this.expected_score_rate = 1;
-      this.agari_score_rate = 1;
-      this.tempai_score_rate = 1;
-      this.expected_score_rate_rate = 1;
-      this.agari_score_rate_rate = 1;
-      this.tempai_score_rate_rate = 1;
+      this.ban.kawa_indicators.splice(0, this.ban.kawa_indicators.length);
+      this.ban.tsumo_indicators.splice(0, this.ban.tsumo_indicators.length);
+      this.ban.result = null;
+      this.ban.expected_score_rate = 1;
+      this.ban.agari_score_rate = 1;
+      this.ban.tempai_score_rate = 1;
+      this.ban.expected_score_rate_rate = 1;
+      this.ban.agari_score_rate_rate = 1;
+      this.ban.tempai_score_rate_rate = 1;
     },
 
     /// 長さ34の配列形式にする。
@@ -656,27 +658,29 @@ export default {
 
     /// 牌を手牌に追加する。
     add_tile(tile) {
-      this.hand_tiles.push(tile);
-      this.tsumo_indicators.push(tile);
-      sort_tiles(this.hand_tiles);
+      this.ban.hand_tiles.push(tile);
+      this.ban.tsumo_indicators.push(tile);
+      sort_tiles(this.ban.hand_tiles);
     },
 
     /// 牌を手牌から次のにする
     next_tile(tile) {
-      if (this.turn >= 18 || this.is_agari) {
+      if (this.is_calculating) return;
+      if (this.ban.turn >= 18 || this.is_agari) {
         return;
       }
-      this.pre_hand_tiles.splice(0, this.pre_hand_tiles.length);
-      for (let hand of this.hand_tiles) {
-        this.pre_hand_tiles.push(hand);
+      this.pre_ban = JSON.stringify(this.ban);
+      this.ban.pre_hand_tiles.splice(0, this.ban.pre_hand_tiles.length);
+      for (let hand of this.ban.hand_tiles) {
+        this.ban.pre_hand_tiles.push(hand);
       }
-      let i = this.hand_tiles.indexOf(tile);
-      if (i > -1) this.hand_tiles.splice(i, 1);
-      this.kawa_indicators.push(tile);
+      let i = this.ban.hand_tiles.indexOf(tile);
+      if (i > -1) this.ban.hand_tiles.splice(i, 1);
+      this.ban.kawa_indicators.push(tile);
       this.add_tile(yama[this.yama_index]);
-      this.turn++;
+      this.ban.turn++;
       this.calculate();
-      if (this.pre_result && this.pre_result.success) {
+      if (this.ban.pre_result && this.ban.pre_result.success) {
         let found = false;
         let no_cands = true;
         let max_exp_value = 0;
@@ -686,14 +690,14 @@ export default {
         let selected_tenpai_prob = 0;
         let selected_win_prob = 0;
         let impl = () => {
-          for (let cand of this.pre_result.response.candidates) {
+          for (let cand of this.ban.pre_result.response.candidates) {
             if (!cand.exp_values) return;
             if (!cand.tenpai_probs) return;
             if (!cand.win_probs) return;
             no_cands = false;
-            let exp_value = cand.exp_values[this.turn];
-            let tenpai_prob = cand.tenpai_probs[this.turn];
-            let win_prob = cand.win_probs[this.turn];
+            let exp_value = cand.exp_values[this.ban.turn];
+            let tenpai_prob = cand.tenpai_probs[this.ban.turn];
+            let win_prob = cand.win_probs[this.ban.turn];
             max_exp_value = Math.max(max_exp_value, exp_value);
             max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
             max_win_prob = Math.max(max_win_prob, win_prob);
@@ -711,28 +715,38 @@ export default {
           impl();
         }
         if (found) {
-          this.expected_score_rate_rate = selected_exp_value / max_exp_value;
-          this.agari_score_rate_rate = selected_win_prob / max_win_prob;
-          this.tempai_score_rate_rate = selected_tenpai_prob / max_tenpai_prob;
-          if (isNaN(this.expected_score_rate_rate)) {
-            this.expected_score_rate_rate = 1;
+          this.ban.expected_score_rate_rate =
+            selected_exp_value / max_exp_value;
+          this.ban.agari_score_rate_rate = selected_win_prob / max_win_prob;
+          this.ban.tempai_score_rate_rate =
+            selected_tenpai_prob / max_tenpai_prob;
+          if (isNaN(this.ban.expected_score_rate_rate)) {
+            this.ban.expected_score_rate_rate = 1;
           }
-          if (isNaN(this.agari_score_rate_rate)) {
-            this.agari_score_rate_rate = 1;
+          if (isNaN(this.ban.agari_score_rate_rate)) {
+            this.ban.agari_score_rate_rate = 1;
           }
-          if (isNaN(this.tempai_score_rate_rate)) {
-            this.tempai_score_rate_rate = 1;
+          if (isNaN(this.ban.tempai_score_rate_rate)) {
+            this.ban.tempai_score_rate_rate = 1;
           }
         } else {
           let rate = no_cands ? 1 : 0;
-          this.expected_score_rate_rate = rate;
-          this.agari_score_rate_rate = rate;
-          this.tempai_score_rate_rate = rate;
+          this.ban.expected_score_rate_rate = rate;
+          this.ban.agari_score_rate_rate = rate;
+          this.ban.tempai_score_rate_rate = rate;
         }
-        this.expected_score_rate *= this.expected_score_rate_rate;
-        this.agari_score_rate *= this.agari_score_rate_rate;
-        this.tempai_score_rate *= this.tempai_score_rate_rate;
+        this.ban.expected_score_rate *= this.ban.expected_score_rate_rate;
+        this.ban.agari_score_rate *= this.ban.agari_score_rate_rate;
+        this.ban.tempai_score_rate *= this.ban.tempai_score_rate_rate;
       }
+    },
+
+    // 一手戻す
+    back_hand() {
+      if (!this.pre_ban) return;
+      this.ban = JSON.parse(this.pre_ban);
+      this.pre_ban = "";
+      this.itte_modoshita = true;
     },
 
     /// 牌を副露ブロックの一覧に追加する。
@@ -789,6 +803,7 @@ export default {
       // 洗牌する。
       yama = shuffle(yama);
       this.next_seed = Math.floor(0x100000000 * Math.random());
+      this.itte_modoshita = false;
 
       let hand_tiles = yama.slice(0, 14);
       sort_tiles(hand_tiles);
@@ -797,8 +812,8 @@ export default {
         this.haipai_tiles.push(tile);
       }
       this.add_dora(yama[14]);
-      this.turn = 1;
-      this.hand_tiles = hand_tiles;
+      this.ban.turn = 1;
+      this.ban.hand_tiles = hand_tiles;
       this.calculate();
     },
     set_random_hand() {
