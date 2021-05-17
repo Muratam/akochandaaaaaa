@@ -152,8 +152,8 @@
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <h3 class="p-2">盤面情報</h3>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label="盤面URL"
         label-align="right"
         class="ban.kawa_indicators p-0"
@@ -165,8 +165,8 @@
         </legend>
       </b-form-group>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label="シード"
         label-align="right"
         class="ban.kawa_indicators p-0"
@@ -176,8 +176,8 @@
         </legend>
       </b-form-group>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label="自摸モード"
         label-align="right"
         class="ban.kawa_indicators p-0"
@@ -187,8 +187,8 @@
         </legend>
       </b-form-group>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label="配牌"
         label-align="right"
         class="ban.kawa_indicators p-0"
@@ -203,8 +203,8 @@
       <hr />
       <h3 class="p-2">盤面生成</h3>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label="シード"
         label-for="tsumo-seed-target"
         label-align="center"
@@ -227,8 +227,8 @@
         </b-tooltip>
       </b-form-group>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label="自摸モード"
         label-for="tsumo-mode-target"
         label-align="center"
@@ -258,8 +258,8 @@
         </b-tooltip>
       </b-form-group>
       <b-form-group
-        label-cols="2"
-        content-cols="10"
+        label-cols="1"
+        content-cols="11"
         label=""
         label-for="tsumo-mode-target"
         label-align="center"
@@ -328,7 +328,7 @@
       <h4>考慮されない項目</h4>
       <ul>
         <li>
-          <b>七対子・国士無双は考慮されません。</b>
+          七対子・国士無双は対応しています。ですが、両天秤は考慮されません。
         </li>
         <li>実装の都合で、すでに捨てた牌の枚数を考慮しません。</li>
         <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
@@ -611,19 +611,149 @@ export default {
       this.is_calculating = true;
       this.ban.pre_result = this.ban.result;
       this.ban.result = null;
-      let data = JSON.stringify({
+      let data = {
         zikaze: this.zikaze,
         bakaze: this.bakaze,
         turn: Math.min(17, this.ban.turn),
-        syanten_type: this.syanten_type,
         dora_indicators: this.dora_indicators,
         flag: this.flag.reduce((a, x) => (a += x), 0) + this.maximize_target,
         hand_tiles: this.ban.hand_tiles,
         melded_blocks: this.melded_blocks,
-      });
+      };
       let impl = () => {
         if (window["Module"].process_request) {
-          this.ban.result = JSON.parse(window["Module"].process_request(data));
+          let results = [];
+          try {
+            data.syanten_type = 1;
+            results.push(
+              JSON.parse(window["Module"].process_request(JSON.stringify(data)))
+            );
+          } catch {
+            console.log(JSON.stringify(data));
+          }
+          // 七対子とかは失敗しやすい
+          try {
+            data.syanten_type = 2;
+            let parsed = JSON.parse(
+              window["Module"].process_request(JSON.stringify(data))
+            );
+            results.push(parsed);
+          } catch {
+            console.log(JSON.stringify(data));
+          }
+          try {
+            data.syanten_type = 4;
+            let parsed = JSON.parse(
+              window["Module"].process_request(JSON.stringify(data))
+            );
+            results.push(parsed);
+          } catch {
+            console.log(JSON.stringify(data));
+          }
+          // console.log(results.map((x) => x.response.syanten));
+          results.sort((a, b) => {
+            return (
+              (a.response != undefined ? a.response.syanten : -1) -
+              (b.response != undefined ? b.response.syanten : -1)
+            );
+          });
+          let result_data = {
+            success: false,
+            request: results[0].request,
+            response: {
+              candidates: [],
+              result_type: 1,
+              syanten: 100,
+              time: 0,
+            },
+          };
+          for (let result of results) {
+            if (!result.success) {
+              result_data.err_msg = result.err_msg;
+              if (result.err_msg === "和了形です。") {
+                result_data.succcess = false;
+                break;
+              }
+              continue;
+            }
+            result_data.success = true;
+            if (result_data.response.syanten < result.response.syanten) {
+              // 新しいやつが弱い場合
+              if (result.response.syanten >= 4) continue;
+              if (
+                result_data.response.syanten + 1 !==
+                result.response.syanten
+              ) {
+                continue;
+              }
+              for (let i = 0; i < result.response.candidates.length; i++) {
+                let cand = result.response.candidates[i];
+                if (cand.syanten_down) {
+                  result.response.candidates[i] = null;
+                } else {
+                  result.response.candidates[i].syanten_down = true;
+                }
+              }
+            } else if (result_data.response.syanten > result.response.syanten) {
+              if (result_data.response.syanten === 100) {
+                result_data.response = result.response;
+              } else {
+                // 新しいやつが強い場合はソートしているので無い
+                console.log("sort failed");
+              }
+              continue;
+            }
+            for (let cand of result.response.candidates) {
+              if (!cand) continue;
+              let found = false;
+              for (let i = 0; i < result_data.response.candidates.length; i++) {
+                let saved = result_data.response.candidates[i];
+                if (saved.tile !== cand.tile) continue;
+                found = true;
+                // 期待値が大きい方。
+                if (!saved.exp_values && cand.exp_values) {
+                  result_data.response.candidates[i] = cand;
+                  continue;
+                }
+                if (!cand.exp_values && saved.exp_values) {
+                  continue;
+                }
+                if (cand.exp_values && saved.exp_values) {
+                  let cand_exp = cand.exp_values[data.turn - 1];
+                  let saved_exp = saved.exp_values[data.turn - 1];
+                  if (cand_exp > saved_exp) {
+                    result_data.response.candidates[i] = cand;
+                  }
+                  continue;
+                }
+                // syanten_down: (...)
+                if (saved.syanten_down !== cand.syanten_down) {
+                  if (saved.syanten_down) {
+                    result_data.response.candidates[i] = cand;
+                    continue;
+                  }
+                }
+                // required_tiles: (...)
+                let cand_sum = 0;
+                let saved_sum = 0;
+                for (let t of saved.required_tiles) {
+                  saved_sum += t.count;
+                }
+                for (let t of cand.required_tiles) {
+                  cand_sum += t.count;
+                }
+                if (cand_sum >= saved_sum) {
+                  result_data.response.candidates[i] = cand;
+                }
+                break;
+              }
+              if (!found) {
+                result_data.response.candidates.push(cand);
+                continue;
+              }
+            }
+          }
+          this.ban.result = result_data;
           this.is_calculating = false;
         } else {
           requestIdleCallback(impl);
@@ -689,15 +819,16 @@ export default {
         let selected_exp_value = 0;
         let selected_tenpai_prob = 0;
         let selected_win_prob = 0;
+        let index = this.ban.turn - 2;
         let impl = () => {
           for (let cand of this.ban.pre_result.response.candidates) {
             if (!cand.exp_values) return;
             if (!cand.tenpai_probs) return;
             if (!cand.win_probs) return;
             no_cands = false;
-            let exp_value = cand.exp_values[this.ban.turn];
-            let tenpai_prob = cand.tenpai_probs[this.ban.turn];
-            let win_prob = cand.win_probs[this.ban.turn];
+            let exp_value = cand.exp_values[index];
+            let tenpai_prob = cand.tenpai_probs[index];
+            let win_prob = cand.win_probs[index];
             max_exp_value = Math.max(max_exp_value, exp_value);
             max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
             max_win_prob = Math.max(max_win_prob, win_prob);
