@@ -393,7 +393,6 @@ class XorShift {
 }
 // めんどいので雑に(vueバインドしたくない)
 let yama = [];
-let yama_index = 0;
 
 export default {
   name: "Calculator",
@@ -516,6 +515,9 @@ export default {
     // 手牌の枚数
     n_hand_tiles() {
       return this.hand_tiles.length + this.melded_blocks.length * 3;
+    },
+    yama_index() {
+      return this.turn + 14;
     },
     //
     state_info() {
@@ -671,8 +673,7 @@ export default {
       let i = this.hand_tiles.indexOf(tile);
       if (i > -1) this.hand_tiles.splice(i, 1);
       this.kawa_indicators.push(tile);
-      this.add_tile(yama[yama_index]);
-      yama_index++;
+      this.add_tile(yama[this.yama_index]);
       this.turn++;
       this.calculate();
       if (this.pre_result && this.pre_result.success) {
@@ -796,7 +797,6 @@ export default {
         this.haipai_tiles.push(tile);
       }
       this.add_dora(yama[14]);
-      yama_index = 15;
       this.turn = 1;
       this.hand_tiles = hand_tiles;
       this.calculate();
