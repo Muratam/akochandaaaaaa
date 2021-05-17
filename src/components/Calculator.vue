@@ -39,6 +39,9 @@
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         {{ tile2String(zikaze) }}家
       </span>
+      <!-- <b-button class="mr-2" variant="light" @click="reset_hand"
+        >一手戻す
+      </b-button> -->
       <b-button class="mr-2" variant="light" @click="reset_hand"
         >はじめから
       </b-button>
@@ -67,14 +70,14 @@
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
       >
         <div
-          class="progress-bar"
+          :class="['progress-bar']"
           :style="
             'width:' +
             (expected_score_rate * 100).toFixed(0) +
             '%; text-align: left; padding-left: 1em'
           "
         >
-          期待値：{{ (expected_score_rate * 100).toFixed(0) }}% (x{{
+          期待値：{{ (expected_score_rate * 100).toFixed(0) }} % (x{{
             expected_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -84,14 +87,14 @@
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
       >
         <div
-          class="progress-bar"
+          :class="['progress-bar']"
           :style="
             'width:' +
             (agari_score_rate * 100).toFixed(0) +
             '%; text-align: left; padding-left: 1em'
           "
         >
-          和了率：{{ (agari_score_rate * 100).toFixed(0) }}% (x{{
+          和了率：{{ (agari_score_rate * 100).toFixed(0) }} % (x{{
             agari_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -101,14 +104,14 @@
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
       >
         <div
-          class="progress-bar"
+          :class="['progress-bar']"
           :style="
             'width:' +
             (tempai_score_rate * 100).toFixed(0) +
             '%; text-align: left; padding-left: 1em'
           "
         >
-          聴牌率：{{ (tempai_score_rate * 100).toFixed(0) }}% (x{{
+          聴牌率：{{ (tempai_score_rate * 100).toFixed(0) }} % (x{{
             tempai_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -156,7 +159,7 @@
         class="kawa_indicators p-0"
       >
         <legend class="col-form-label">
-          <a :href="state_url">
+          <a :href="state_url" target="”_blank”">
             {{ state_url }}
           </a>
         </legend>
@@ -289,7 +292,6 @@
         </li>
         <li>
           牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
-          まずは期待値ゲージが95%を維持したまま最後まで進めることを目標にしてみましょう。
           最後まで期待値ゲージが100%であれば、各打牌時点で期待値が最大となる打牌ができています。
         </li>
         <li>
@@ -317,8 +319,7 @@
       <ul>
         <li>一人麻雀であり、ツモ和了のみが考慮されます。</li>
         <li>
-          赤牌、裏ドラ、ダブル立直、一発、海底撈月、向聴戻し、手変わり
-          を点数計算に考慮します。
+          赤牌、裏ドラ、海底撈月、向聴戻し、手変わり を点数計算に考慮します。
         </li>
         <li>東場 / 東家。親の点数で計算します。</li>
       </ul>
@@ -339,6 +340,7 @@
         </li>
         <li>積み棒、不聴罰符、立直棒は点数計算に考慮しません。</li>
       </ul>
+      <hr />
     </b-tab>
   </b-tabs>
 </template>
@@ -675,17 +677,19 @@ export default {
       this.calculate();
       if (this.pre_result && this.pre_result.success) {
         let found = false;
+        let no_cands = true;
+        let max_exp_value = 0;
+        let max_tenpai_prob = 0;
+        let max_win_prob = 0;
+        let selected_exp_value = 0;
+        let selected_tenpai_prob = 0;
+        let selected_win_prob = 0;
         let impl = () => {
-          let max_exp_value = 0;
-          let max_tenpai_prob = 0;
-          let max_win_prob = 0;
-          let selected_exp_value = 0;
-          let selected_tenpai_prob = 0;
-          let selected_win_prob = 0;
           for (let cand of this.pre_result.response.candidates) {
             if (!cand.exp_values) return;
             if (!cand.tenpai_probs) return;
             if (!cand.win_probs) return;
+            no_cands = false;
             let exp_value = cand.exp_values[this.turn];
             let tenpai_prob = cand.tenpai_probs[this.turn];
             let win_prob = cand.win_probs[this.turn];
@@ -699,34 +703,34 @@ export default {
               found = true;
             }
           }
-          if (found) {
-            this.expected_score_rate_rate = selected_exp_value / max_exp_value;
-            this.agari_score_rate_rate = selected_win_prob / max_win_prob;
-            this.tempai_score_rate_rate =
-              selected_tenpai_prob / max_tenpai_prob;
-            if (isNaN(this.expected_score_rate_rate)) {
-              this.expected_score_rate_rate = 1;
-            }
-            if (isNaN(this.agari_score_rate_rate)) {
-              this.agari_score_rate_rate = 1;
-            }
-            if (isNaN(this.tempai_score_rate_rate)) {
-              this.tempai_score_rate_rate = 1;
-            }
-            this.expected_score_rate *= this.expected_score_rate_rate;
-            this.agari_score_rate *= this.agari_score_rate_rate;
-            this.tempai_score_rate *= this.tempai_score_rate_rate;
-          } else {
-            this.expected_score_rate_rate = 1;
-            this.agari_score_rate_rate = 1;
-            this.tempai_score_rate_rate = 1;
-          }
         };
         impl();
         if (!found) {
           tile = this.unwrap_aka(tile);
           impl();
         }
+        if (found) {
+          this.expected_score_rate_rate = selected_exp_value / max_exp_value;
+          this.agari_score_rate_rate = selected_win_prob / max_win_prob;
+          this.tempai_score_rate_rate = selected_tenpai_prob / max_tenpai_prob;
+          if (isNaN(this.expected_score_rate_rate)) {
+            this.expected_score_rate_rate = 1;
+          }
+          if (isNaN(this.agari_score_rate_rate)) {
+            this.agari_score_rate_rate = 1;
+          }
+          if (isNaN(this.tempai_score_rate_rate)) {
+            this.tempai_score_rate_rate = 1;
+          }
+        } else {
+          let rate = no_cands ? 1 : 0;
+          this.expected_score_rate_rate = rate;
+          this.agari_score_rate_rate = rate;
+          this.tempai_score_rate_rate = rate;
+        }
+        this.expected_score_rate *= this.expected_score_rate_rate;
+        this.agari_score_rate *= this.agari_score_rate_rate;
+        this.tempai_score_rate *= this.tempai_score_rate_rate;
       }
     },
 
