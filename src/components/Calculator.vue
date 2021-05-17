@@ -644,9 +644,9 @@ export default {
       yama_index++;
       this.turn++;
       this.calculate();
-      tile = this.unwrap_aka(tile);
       if (this.pre_result && this.pre_result.success) {
-        (() => {
+        let found = false;
+        let impl = () => {
           let max_exp_value = 0;
           let max_tenpai_prob = 0;
           let max_win_prob = 0;
@@ -667,24 +667,37 @@ export default {
               selected_exp_value = exp_value;
               selected_tenpai_prob = tenpai_prob;
               selected_win_prob = win_prob;
+              found = true;
             }
           }
-          this.expected_score_rate_rate = selected_exp_value / max_exp_value;
-          this.agari_score_rate_rate = selected_win_prob / max_win_prob;
-          this.tempai_score_rate_rate = selected_tenpai_prob / max_tenpai_prob;
-          if (isNaN(this.expected_score_rate_rate)) {
+          if (found) {
+            this.expected_score_rate_rate = selected_exp_value / max_exp_value;
+            this.agari_score_rate_rate = selected_win_prob / max_win_prob;
+            this.tempai_score_rate_rate =
+              selected_tenpai_prob / max_tenpai_prob;
+            if (isNaN(this.expected_score_rate_rate)) {
+              this.expected_score_rate_rate = 1;
+            }
+            if (isNaN(this.agari_score_rate_rate)) {
+              this.agari_score_rate_rate = 1;
+            }
+            if (isNaN(this.tempai_score_rate_rate)) {
+              this.tempai_score_rate_rate = 1;
+            }
+            this.expected_score_rate *= this.expected_score_rate_rate;
+            this.agari_score_rate *= this.agari_score_rate_rate;
+            this.tempai_score_rate *= this.tempai_score_rate_rate;
+          } else {
             this.expected_score_rate_rate = 1;
-          }
-          if (isNaN(this.agari_score_rate_rate)) {
             this.agari_score_rate_rate = 1;
-          }
-          if (isNaN(this.tempai_score_rate_rate)) {
             this.tempai_score_rate_rate = 1;
           }
-          this.expected_score_rate *= this.expected_score_rate_rate;
-          this.agari_score_rate *= this.agari_score_rate_rate;
-          this.tempai_score_rate *= this.tempai_score_rate_rate;
-        })();
+        };
+        impl();
+        if (!found) {
+          tile = this.unwrap_aka(tile);
+          impl();
+        }
       }
     },
 
