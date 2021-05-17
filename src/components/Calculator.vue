@@ -40,7 +40,7 @@
         {{ tile2String(zikaze) }}家
       </span>
       <b-button class="mr-2" variant="light" @click="reset_hand"
-        >やり直す
+        >はじめから
       </b-button>
       <b-form-group
         label-cols="0"
@@ -147,9 +147,45 @@
       </template>
     </b-tab>
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
+      <h3 class="p-2">盤面情報</h3>
       <b-form-group
-        label-cols="1"
-        content-cols="11"
+        label-cols="2"
+        content-cols="10"
+        label="盤面URL"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <legend class="col-form-label">
+          <a :href="state_url">
+            {{ state_url }}
+          </a>
+        </legend>
+      </b-form-group>
+      <b-form-group
+        label-cols="2"
+        content-cols="10"
+        label="シード"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <legend class="col-form-label">
+          {{ seed }}
+        </legend>
+      </b-form-group>
+      <b-form-group
+        label-cols="2"
+        content-cols="10"
+        label="自摸モード"
+        label-align="right"
+        class="kawa_indicators p-0"
+      >
+        <legend class="col-form-label">
+          {{ tsumo_mode_options[tsumo_mode]["text"] }}
+        </legend>
+      </b-form-group>
+      <b-form-group
+        label-cols="2"
+        content-cols="10"
         label="配牌"
         label-align="right"
         class="kawa_indicators p-0"
@@ -160,28 +196,43 @@
           size="lg"
         />
       </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="シード"
-        label-align="right"
-        class="kawa_indicators p-0"
-      >
-        <legend class="col-form-label">
-          {{ seed }}
-        </legend>
-      </b-form-group>
+
       <hr />
+      <h3 class="p-2">盤面生成</h3>
       <b-form-group
         label-cols="2"
         content-cols="10"
-        label="次自摸モード"
+        label="シード"
+        label-for="tsumo-seed-target"
+        label-align="center"
+      >
+        <b-form-input
+          id="tsumo-seed-target"
+          v-model="next_seed"
+          style="max-width: 10em"
+          size="sm"
+        ></b-form-input>
+
+        <b-tooltip
+          target="tsumo-seed-target"
+          triggers="hover"
+          custom-class="custom-tooltip"
+          placement="topright"
+        >
+          次の盤面のシードを設定できます。
+          同じシードであれば同じ盤面になります。
+        </b-tooltip>
+      </b-form-group>
+      <b-form-group
+        label-cols="2"
+        content-cols="10"
+        label="自摸モード"
         label-for="tsumo-mode-target"
         label-align="center"
       >
         <b-form-radio-group
           id="tsumo-mode-target"
-          v-model="tsumo_mode"
+          v-model="next_tsumo_mode"
           :options="tsumo_mode_options"
           button-variant="outline-primary"
           size="sm"
@@ -205,36 +256,13 @@
       </b-form-group>
       <b-form-group
         label-cols="2"
-        content-cols="3"
-        label="次シード"
-        label-for="tsumo-seed-target"
-        label-align="center"
-      >
-        <b-form-input
-          id="tsumo-seed-target"
-          v-model="next_seed"
-          size="sm"
-        ></b-form-input>
-
-        <b-tooltip
-          target="tsumo-seed-target"
-          triggers="hover"
-          custom-class="custom-tooltip"
-          placement="topright"
-        >
-          次の盤面のシードを設定できます。
-          同じシードであれば同じ盤面になります。
-        </b-tooltip>
-      </b-form-group>
-      <b-form-group
-        label-cols="2"
         content-cols="10"
         label=""
         label-for="tsumo-mode-target"
         label-align="center"
       >
         <b-button class="mr-2" variant="primary" @click="set_random_hand"
-          >次の盤面を生成
+          >盤面生成！
         </b-button>
       </b-form-group>
       <b-overlay :show="is_calculating" rounded="sm">
@@ -261,8 +289,8 @@
         </li>
         <li>
           牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
-          例えば期待値スコアであれば、「最大期待値になる捨牌に対するあなたの捨牌の期待値の割合」が計算されます。
-          最後まで100%であれば、各時点で期待値が最大となる打牌ができています。
+          まずは期待値ゲージが95%を維持したまま最後まで進めることを目標にしてみましょう。
+          最後まで期待値ゲージが100%であれば、各打牌時点で期待値が最大となる打牌ができています。
         </li>
         <li>
           速度が気になる場合は<a href="../akochandaaaaa-fast/"
@@ -401,6 +429,7 @@ export default {
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
       tsumo_mode: tsumo_mode,
+      next_tsumo_mode: tsumo_mode,
       haipai_tiles: [], // 配牌
       hand_tiles: [], // 手牌
       pre_hand_tiles: [], // 一手前の手牌
@@ -770,6 +799,7 @@ export default {
     },
     set_random_hand() {
       this.seed = this.next_seed;
+      this.tsumo_mode = this.next_tsumo_mode;
       this.reset_hand();
     },
   },
