@@ -154,30 +154,13 @@
       </template>
     </b-tab>
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="盤面URL"
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
-        <legend class="col-form-label">
-          <b-button class="mr-2" variant="light" @click="copy_url"
-            >共有用 URL をコピー
-          </b-button>
-        </legend>
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="シード"
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
-        <legend class="col-form-label">
-          {{ seed }}
-        </legend>
-      </b-form-group>
+      <b-button class="mr-2" variant="primary" @click="set_random_hand"
+        >別の盤面で遊ぶ！
+      </b-button>
+
+      <hr />
+      <h3>盤面情報</h3>
+      <br />
       <b-form-group
         label-cols="1"
         content-cols="11"
@@ -194,13 +177,26 @@
       <b-form-group
         label-cols="1"
         content-cols="11"
-        label=""
-        label-for="tsumo-mode-target"
-        label-align="center"
+        label="シード"
+        label-align="right"
+        class="ban.kawa_indicators p-0"
       >
-        <b-button class="mr-2" variant="primary" @click="set_random_hand"
-          >別の盤面で遊ぶ！
-        </b-button>
+        <legend class="col-form-label">
+          {{ seed }}
+        </legend>
+      </b-form-group>
+      <b-form-group
+        label-cols="1"
+        content-cols="11"
+        label="盤面URL"
+        label-align="right"
+        class="ban.kawa_indicators p-0"
+      >
+        <legend class="col-form-label">
+          <b-button class="mr-2" variant="light" @click="copy_url"
+            >共有用 URL をコピー
+          </b-button>
+        </legend>
       </b-form-group>
       <b-overlay :show="is_calculating" rounded="sm">
         <template #overlay>
@@ -1001,7 +997,7 @@ export default {
     set_random_hand() {
       this.seed = this.next_seed;
       this.reset_hand();
-      history.pushState({}, "", this.state_url_pure);
+      history.pushState({}, "", this.state_url);
     },
   },
   mounted() {
