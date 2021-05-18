@@ -42,7 +42,11 @@
       <b-button class="mr-2" variant="light" @click="reset_hand"
         >はじめから
       </b-button>
-      <b-button v-if="pre_ban" class="mr-2" variant="light" @click="back_hand"
+      <b-button
+        v-if="pre_ban && ban.turn < 18 && !is_agari"
+        class="mr-2"
+        variant="light"
+        @click="back_hand"
         >一手戻す
       </b-button>
       <b-form-group
@@ -77,7 +81,7 @@
             '%; text-align: left; padding-left: 1em'
           "
         >
-          期待値：{{ (ban.expected_score_rate * 100).toFixed(0) }} % (x{{
+          期待値：{{ (ban.expected_score_rate * 100).toFixed(0) }} pt (x{{
             ban.expected_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -94,7 +98,7 @@
             '%; text-align: left; padding-left: 1em'
           "
         >
-          和了率：{{ (ban.agari_score_rate * 100).toFixed(0) }} % (x{{
+          和了率：{{ (ban.agari_score_rate * 100).toFixed(0) }} pt (x{{
             ban.agari_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -111,7 +115,7 @@
             '%; text-align: left; padding-left: 1em'
           "
         >
-          聴牌率：{{ (ban.tempai_score_rate * 100).toFixed(0) }} % (x{{
+          聴牌率：{{ (ban.tempai_score_rate * 100).toFixed(0) }} pt (x{{
             ban.tempai_score_rate_rate.toFixed(2)
           }})
         </div>
@@ -158,9 +162,9 @@
         class="ban.kawa_indicators p-0"
       >
         <legend class="col-form-label">
-          <a :href="state_url" target="”_blank”">
-            {{ state_url }}
-          </a>
+          <b-button class="mr-2" variant="light" @click="copy_url"
+            >URLをコピー
+          </b-button>
         </legend>
       </b-form-group>
       <b-form-group
@@ -187,32 +191,6 @@
           size="lg"
         />
       </b-form-group>
-
-      <hr />
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="シード"
-        label-for="tsumo-seed-target"
-        label-align="center"
-      >
-        <b-form-input
-          id="tsumo-seed-target"
-          v-model="next_seed"
-          style="max-width: 10em"
-          size="sm"
-        ></b-form-input>
-
-        <b-tooltip
-          target="tsumo-seed-target"
-          triggers="hover"
-          custom-class="custom-tooltip"
-          placement="topright"
-        >
-          次の盤面のシードを設定できます。
-          同じシードであれば同じ盤面になります。
-        </b-tooltip>
-      </b-form-group>
       <b-form-group
         label-cols="1"
         content-cols="11"
@@ -221,7 +199,7 @@
         label-align="center"
       >
         <b-button class="mr-2" variant="primary" @click="set_random_hand"
-          >盤面生成！
+          >別の盤面で遊ぶ！
         </b-button>
       </b-form-group>
       <b-overlay :show="is_calculating" rounded="sm">
@@ -233,14 +211,16 @@
     </b-tab>
     <b-tab title="ログ" :title-link-class="linkClass(2)" class="pl-3 pr-3">
       <h5>結果を最大直近50件まで表示します。</h5>
-      <hr />
       <div
         class="card"
         v-for="log in banResultLogs"
         :key="log.date"
-        style="max-width: 35em"
+        style="max-width: 35em; margin-bottom: 0.2em"
       >
-        <div class="card-body" style="padding: 0; margin: 1em">
+        <div
+          class="card-body"
+          style="padding: 0; margin: 0.4em; line-height: 1.8em"
+        >
           <ShareNetwork
             key="Twitter"
             network="Twitter"
@@ -249,29 +229,32 @@
             :title="
               '期待値' +
               log.expected_score_rate +
-              '%・和了率' +
+              'pt・和了率' +
               log.agari_score_rate +
-              '%・聴牌率' +
+              'pt・聴牌率' +
               log.tempai_score_rate +
-              '%の牌効率だったよ！'
+              'ptの牌効率だったよ！'
             "
             :class="['Twitter', 'social-button']"
           >
             つぶやく
           </ShareNetwork>
           {{ new Date(log.date).toLocaleString() }}
-          <hr />
-          配牌：<TileImage
+          <br />
+          <a :href="get_state_url(log.seed)">
+            {{ get_state_url(log.seed) }}
+          </a>
+          <br />
+          <!-- 配牌：<TileImage
             v-for="(tile, i) in log.haipai_tiles"
             :key="i + 'log-haipai-' + log.date"
             :tile="tile"
-          /><br />
-          結果：<TileImage
+          /><br /> -->
+          <TileImage
             v-for="(tile, i) in log.hand_tiles"
             :key="i + 'log-hand-' + log.date"
             :tile="tile"
           />
-          <hr />
           <b-progress style="height: 1.8em; margin: 0.2em">
             <b-progress-bar
               :class="[log.itte_modoshita ? 'bg-secondary' : '']"
@@ -281,7 +264,7 @@
                 '%; text-align: left; padding-left: 1em'
               "
             >
-              期待値：{{ log.expected_score_rate }} %
+              期待値：{{ log.expected_score_rate }} pt
             </b-progress-bar>
           </b-progress>
           <b-progress style="height: 1.8em; margin: 0.2em">
@@ -293,7 +276,7 @@
                 '%; text-align: left; padding-left: 1em'
               "
             >
-              和了率：{{ log.agari_score_rate }} %
+              和了率：{{ log.agari_score_rate }} pt
             </b-progress-bar>
           </b-progress>
           <b-progress style="height: 1.8em; margin: 0.2em">
@@ -305,7 +288,7 @@
                 '%; text-align: left; padding-left: 1em'
               "
             >
-              聴牌率：{{ log.tempai_score_rate }} %
+              聴牌率：{{ log.tempai_score_rate }} pt
             </b-progress-bar>
           </b-progress>
         </div>
@@ -328,7 +311,7 @@
         </li>
         <li>
           牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
-          期待値ゲージが100%のまま最後まで打牌できれば、期待値最大の牌効率ができています！
+          期待値ゲージが100ptのまま最後まで打牌できれば、期待値最大の牌効率ができています！
         </li>
         <li>
           速度が気になる場合は<a href="../akochandaaaaa-fast/"
@@ -546,9 +529,9 @@ export default {
     state_info_without_config() {
       return `期待値 ${(this.ban.expected_score_rate * 100).toFixed(
         0
-      )} %・和了率${(this.ban.agari_score_rate * 100).toFixed(0)} %・聴牌率${(
+      )} pt・和了率${(this.ban.agari_score_rate * 100).toFixed(0)} pt・聴牌率${(
         this.ban.tempai_score_rate * 100
-      ).toFixed(0)} % の牌効率で、${this.shanten}！`;
+      ).toFixed(0)} pt の牌効率で、${this.shanten}！`;
     },
     state_url() {
       return this.get_state_url(this.seed);
@@ -616,6 +599,14 @@ export default {
   },
 
   methods: {
+    copy_url() {
+      navigator.clipboard.writeText(this.state_url).then(() => {
+        alert(
+          this.state_url +
+            " をコピーしました。このURLを使うと今と同じ盤面を生成できます。"
+        );
+      });
+    },
     get_state_url(seed) {
       return `${this.state_url_pure}?q=${seed}`;
     },
@@ -1007,6 +998,7 @@ export default {
     set_random_hand() {
       this.seed = this.next_seed;
       this.reset_hand();
+      history.pushState({}, "", this.state_url_pure);
     },
   },
   mounted() {
