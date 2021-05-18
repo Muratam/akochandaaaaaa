@@ -163,7 +163,7 @@
       >
         <legend class="col-form-label">
           <b-button class="mr-2" variant="light" @click="copy_url"
-            >URLをコピー
+            >共有用 URL をコピー
           </b-button>
         </legend>
       </b-form-group>
@@ -529,7 +529,7 @@ export default {
     state_info_without_config() {
       return `期待値 ${(this.ban.expected_score_rate * 100).toFixed(
         0
-      )} pt・和了率${(this.ban.agari_score_rate * 100).toFixed(0)} pt・聴牌率${(
+      )} pt, 和了率${(this.ban.agari_score_rate * 100).toFixed(0)} pt, 聴牌率${(
         this.ban.tempai_score_rate * 100
       ).toFixed(0)} pt の牌効率で、${this.shanten}！`;
     },
@@ -603,7 +603,7 @@ export default {
       navigator.clipboard.writeText(this.state_url).then(() => {
         alert(
           this.state_url +
-            " をコピーしました。このURLを使うと今と同じ盤面を生成できます。"
+            " をコピーしました。\nこのURLを共有すると、誰でもこの盤面を生成できます。"
         );
       });
     },
@@ -805,7 +805,10 @@ export default {
           requestIdleCallback(impl);
         }
       };
-      requestIdleCallback(impl);
+      // 次の結果のアニメーションを安定して実行
+      setTimeout(() => {
+        requestIdleCallback(impl);
+      }, 800);
     },
 
     /// 手牌を初期化する。
