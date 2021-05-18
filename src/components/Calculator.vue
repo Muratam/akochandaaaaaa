@@ -150,7 +150,6 @@
       </template>
     </b-tab>
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
-      <h3 class="p-2">盤面情報</h3>
       <b-form-group
         label-cols="1"
         content-cols="11"
@@ -178,17 +177,6 @@
       <b-form-group
         label-cols="1"
         content-cols="11"
-        label="自摸モード"
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
-        <legend class="col-form-label">
-          {{ tsumo_mode_options[tsumo_mode]["text"] }}
-        </legend>
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
         label="配牌"
         label-align="right"
         class="ban.kawa_indicators p-0"
@@ -201,7 +189,6 @@
       </b-form-group>
 
       <hr />
-      <h3 class="p-2">盤面生成</h3>
       <b-form-group
         label-cols="1"
         content-cols="11"
@@ -229,37 +216,6 @@
       <b-form-group
         label-cols="1"
         content-cols="11"
-        label="自摸モード"
-        label-for="tsumo-mode-target"
-        label-align="center"
-      >
-        <b-form-radio-group
-          id="tsumo-mode-target"
-          v-model="next_tsumo_mode"
-          :options="tsumo_mode_options"
-          button-variant="outline-primary"
-          size="sm"
-          buttons
-        ></b-form-radio-group>
-
-        <b-tooltip
-          target="tsumo-mode-target"
-          triggers="hover"
-          custom-class="custom-tooltip"
-          placement="topright"
-        >
-          <ul>
-            <li>通常モード: 通常の自摸設定です。</li>
-            <li>
-              字牌自摸らずモード:
-              字牌を自摸らなくなります。手がよくなる幸運モードです。(期待値計算では字牌をツモる可能性を考慮して計算されます)
-            </li>
-          </ul>
-        </b-tooltip>
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
         label=""
         label-for="tsumo-mode-target"
         label-align="center"
@@ -274,6 +230,86 @@
           <p>計算中</p>
         </template>
       </b-overlay>
+    </b-tab>
+    <b-tab title="ログ" :title-link-class="linkClass(2)" class="pl-3 pr-3">
+      <h5>結果を最大直近50件まで表示します。</h5>
+      <hr />
+      <div
+        class="card"
+        v-for="log in banResultLogs"
+        :key="log.date"
+        style="max-width: 35em"
+      >
+        <div class="card-body" style="padding: 0; margin: 1em">
+          <ShareNetwork
+            key="Twitter"
+            network="Twitter"
+            :url="get_state_url(log.seed)"
+            hashtags="牌効率チェッカー"
+            :title="
+              '期待値' +
+              log.expected_score_rate +
+              '%・和了率' +
+              log.agari_score_rate +
+              '%・聴牌率' +
+              log.tempai_score_rate +
+              '%の牌効率だったよ！'
+            "
+            :class="['Twitter', 'social-button']"
+          >
+            つぶやく
+          </ShareNetwork>
+          {{ new Date(log.date).toLocaleString() }}
+          <hr />
+          配牌：<TileImage
+            v-for="(tile, i) in log.haipai_tiles"
+            :key="i + 'log-haipai-' + log.date"
+            :tile="tile"
+          /><br />
+          結果：<TileImage
+            v-for="(tile, i) in log.hand_tiles"
+            :key="i + 'log-hand-' + log.date"
+            :tile="tile"
+          />
+          <hr />
+          <b-progress style="height: 1.8em; margin: 0.2em">
+            <b-progress-bar
+              :class="[log.itte_modoshita ? 'bg-secondary' : '']"
+              :style="
+                'width:' +
+                log.expected_score_rate +
+                '%; text-align: left; padding-left: 1em'
+              "
+            >
+              期待値：{{ log.expected_score_rate }} %
+            </b-progress-bar>
+          </b-progress>
+          <b-progress style="height: 1.8em; margin: 0.2em">
+            <b-progress-bar
+              :class="[log.itte_modoshita ? 'bg-secondary' : '']"
+              :style="
+                'width:' +
+                log.agari_score_rate +
+                '%; text-align: left; padding-left: 1em'
+              "
+            >
+              和了率：{{ log.agari_score_rate }} %
+            </b-progress-bar>
+          </b-progress>
+          <b-progress style="height: 1.8em; margin: 0.2em">
+            <b-progress-bar
+              :class="[log.itte_modoshita ? 'bg-secondary' : '']"
+              :style="
+                'width:' +
+                log.tempai_score_rate +
+                '%; text-align: left; padding-left: 1em'
+              "
+            >
+              聴牌率：{{ log.tempai_score_rate }} %
+            </b-progress-bar>
+          </b-progress>
+        </div>
+      </div>
     </b-tab>
     <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
       <h4>牌効率チェッカー</h4>
@@ -340,7 +376,6 @@
         </li>
         <li>積み棒、不聴罰符、立直棒は点数計算に考慮しません。</li>
       </ul>
-      <hr />
     </b-tab>
   </b-tabs>
 </template>
@@ -408,12 +443,6 @@ export default {
     } else {
       next_seed = +next_seed;
     }
-    let tsumo_mode = new URL(window.location.href).searchParams.get("c");
-    if (!tsumo_mode || isNaN(+tsumo_mode)) {
-      tsumo_mode = 0;
-    } else {
-      tsumo_mode = +tsumo_mode === 0 ? 0 : 1;
-    }
     return {
       // Description
       tab_index: 0,
@@ -423,8 +452,6 @@ export default {
       syanten_type: SyantenType.Normal, // 手牌の種類
       flag: [1, 2, 4, 8, 16, 32], // フラグ
       maximize_target: 0,
-      tsumo_mode: tsumo_mode,
-      next_tsumo_mode: tsumo_mode,
       haipai_tiles: [], // 配牌
       dora_indicators: [], // ドラ
       melded_blocks: [], // 副露ブロックの一覧
@@ -433,6 +460,7 @@ export default {
       seed: Math.floor(0x100000000 * Math.random()),
       next_seed: next_seed,
       is_calculating: false,
+      storage: [],
       // BEGIN: 盤面
       ban: {
         expected_score_rate: 1,
@@ -500,17 +528,6 @@ export default {
           text: "和了確率最大化",
         },
       ],
-      // 自摸モード
-      tsumo_mode_options: [
-        {
-          value: 0,
-          text: "通常モード",
-        },
-        {
-          value: 1,
-          text: "字牌自摸らずモード",
-        },
-      ],
     };
   },
 
@@ -524,19 +541,17 @@ export default {
     },
     //
     state_info() {
-      return `${this.state_info_without_config}(シード ${this.seed} ・${
-        this.tsumo_mode === 0 ? "通常モード" : "字牌自摸らずモード"
-      })`;
+      return `${this.state_info_without_config}`;
     },
     state_info_without_config() {
       return `期待値 ${(this.ban.expected_score_rate * 100).toFixed(
         0
       )} %・和了率${(this.ban.agari_score_rate * 100).toFixed(0)} %・聴牌率${(
         this.ban.tempai_score_rate * 100
-      ).toFixed(0)} % の打牌をして、${this.shanten}！`;
+      ).toFixed(0)} % の牌効率で、${this.shanten}！`;
     },
     state_url() {
-      return `${this.state_url_pure}?q=${this.seed}&c=${this.tsumo_mode}`;
+      return this.get_state_url(this.seed);
     },
     state_url_pure() {
       let url = new URL(window.location.href);
@@ -584,9 +599,26 @@ export default {
       }
       return false;
     },
+    banResultLogs() {
+      // 依存を無駄につける
+      let logs = [];
+      if (this.storage) {
+        logs = window.localStorage.getItem("dahais");
+      } else {
+        logs = window.localStorage.getItem("dahais");
+      }
+      if (!logs) logs = [];
+      else logs = JSON.parse(logs);
+      logs.sort((a, b) => b.date - a.date);
+      logs.splice(50, logs.length);
+      return logs;
+    },
   },
 
   methods: {
+    get_state_url(seed) {
+      return `${this.state_url_pure}?q=${seed}`;
+    },
     unwrap_aka(tile) {
       if (tile === Tile.AkaManzu5) {
         return Tile.Manzu5;
@@ -606,6 +638,28 @@ export default {
       } else {
         return "text-dark";
       }
+    },
+    saveCurrentResult() {
+      const key = "dahais";
+      let storage = window.localStorage.getItem(key);
+      if (!storage) storage = [];
+      else storage = JSON.parse(storage);
+      let expected_score_rate = Math.floor(100 * this.ban.expected_score_rate);
+      let agari_score_rate = Math.floor(100 * this.ban.agari_score_rate);
+      let tempai_score_rate = Math.floor(100 * this.ban.tempai_score_rate);
+
+      storage.push({
+        seed: this.seed,
+        hand_tiles: this.ban.hand_tiles,
+        haipai_tiles: this.haipai_tiles,
+        date: new Date().getTime(),
+        itte_modoshita: this.itte_modoshita,
+        expected_score_rate: expected_score_rate,
+        agari_score_rate: agari_score_rate,
+        tempai_score_rate: tempai_score_rate,
+      });
+      this.storage = storage;
+      window.localStorage.setItem(key, JSON.stringify(storage));
     },
     calculate() {
       this.is_calculating = true;
@@ -672,6 +726,7 @@ export default {
               result_data.err_msg = result.err_msg;
               if (result.err_msg === "和了形です。") {
                 result_data.succcess = false;
+                this.saveCurrentResult();
                 break;
               }
               continue;
@@ -809,6 +864,9 @@ export default {
       this.ban.kawa_indicators.push(tile);
       this.add_tile(yama[this.yama_index]);
       this.ban.turn++;
+      if (this.ban.turn >= 18) {
+        this.saveCurrentResult();
+      }
       this.calculate();
       if (this.ban.pre_result && this.ban.pre_result.success) {
         let found = false;
@@ -905,7 +963,6 @@ export default {
     },
     reset_hand() {
       this.clear_hand();
-
       const shuffle = ([...array]) => {
         let xorshift = new XorShift(this.seed);
         for (let i = array.length - 1; i >= 0; i--) {
@@ -917,7 +974,7 @@ export default {
 
       // 牌山を作成する。
       yama = [];
-      let max_yama = this.tsumo_mode === 0 ? 34 : 27;
+      let max_yama = 34;
       for (let i = 0; i < max_yama; ++i) {
         yama = yama.concat(Array(4).fill(i));
       }
@@ -949,7 +1006,6 @@ export default {
     },
     set_random_hand() {
       this.seed = this.next_seed;
-      this.tsumo_mode = this.next_tsumo_mode;
       this.reset_hand();
     },
   },
