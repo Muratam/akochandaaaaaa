@@ -157,7 +157,12 @@
       <b-button class="mr-2" variant="primary" @click="set_random_hand"
         >別の盤面で遊ぶ！
       </b-button>
-
+      <b-overlay :show="is_calculating" rounded="sm">
+        <template #overlay>
+          <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
+          <p>計算中</p>
+        </template>
+      </b-overlay>
       <hr />
       <h3>盤面情報</h3>
       <br />
@@ -198,12 +203,22 @@
           </b-button>
         </legend>
       </b-form-group>
-      <b-overlay :show="is_calculating" rounded="sm">
-        <template #overlay>
-          <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
-          <p>計算中</p>
-        </template>
-      </b-overlay>
+      <b-form-group
+        label-cols="1"
+        content-cols="11"
+        label="他家設定"
+        label-align="right"
+      >
+        <b-input
+          type="range"
+          class="form-control-range"
+          style="max-width: 30em"
+          v-model="tacha_tempai_percent"
+        />
+        聴牌率： {{ tacha_tempai_percent }} % (デフォルト：72 %)<br />
+        ノーテン罰符獲得期待値： {{ "+" + tempai_noten_plus_abs }}点 <br />
+        ノーテン罰符損失期待値： {{ "-" + noten_noten_minus_abs }}点 <br />
+      </b-form-group>
     </b-tab>
     <b-tab title="ログ" :title-link-class="linkClass(2)" class="pl-3 pr-3">
       <h5>結果を最大直近50件まで表示します。</h5>
@@ -440,6 +455,7 @@ export default {
       next_seed: next_seed,
       is_calculating: false,
       storage: [],
+      tacha_tempai_percent: 72,
       // BEGIN: 盤面
       ban: {
         expected_score_rate: 1,
@@ -592,6 +608,25 @@ export default {
       logs.splice(50, logs.length);
       return logs;
     },
+    tacha_tempai_rate() {
+      return this.tacha_tempai_percent / 100;
+    },
+    tempai_noten_plus_abs() {
+      let x = this.tacha_tempai_rate;
+      return (
+        3 * x * (1 - x) * x * 1000 +
+        3 * x * (1 - x) * (1 - x) * 1500 +
+        (1 - x) * (1 - x) * (1 - x) * 3000
+      ).toFixed(0);
+    },
+    noten_noten_minus_abs() {
+      let x = this.tacha_tempai_rate;
+      return (
+        x * x * x * 3000 +
+        3 * x * (1 - x) * x * 1500 +
+        3 * x * (1 - x) * (1 - x) * 1000
+      ).toFixed(0);
+    },
   },
 
   methods: {
@@ -719,6 +754,22 @@ export default {
               continue;
             }
             result_data.success = true;
+            for (let cand of result.response.candidates) {
+              if (!cand) continue;
+              if (!cand.exp_values) continue;
+              if (!cand.win_probs) continue;
+              if (!cand.tenpai_probs) continue;
+              for (let i = 0; i < cand.exp_values.length; i++) {
+                let cand_exp = cand.exp_values[i];
+                let win_prob = cand.win_probs[i];
+                let tenpai_prob = cand.tenpai_probs[i];
+                let exp_truth =
+                  cand_exp +
+                  (tenpai_prob - win_prob) * this.tempai_noten_plus_abs -
+                  (1 - tenpai_prob + win_prob) * this.noten_noten_minus_abs;
+                cand.exp_values[i] = exp_truth;
+              }
+            }
             if (result_data.response.syanten < result.response.syanten) {
               // 新しいやつが弱い場合
               if (result.response.syanten >= 4) continue;
@@ -894,8 +945,9 @@ export default {
           impl();
         }
         if (found) {
-          this.ban.expected_score_rate_rate =
-            selected_exp_value / max_exp_value;
+          let lost_exp = max_exp_value - selected_exp_value;
+          lost_exp = Math.pow(2, -(lost_exp / 1000) * (lost_exp / 1000));
+          this.ban.expected_score_rate_rate = lost_exp;
           this.ban.agari_score_rate_rate = selected_win_prob / max_win_prob;
           this.ban.tempai_score_rate_rate =
             selected_tenpai_prob / max_tenpai_prob;
