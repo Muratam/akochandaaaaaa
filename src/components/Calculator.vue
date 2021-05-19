@@ -939,7 +939,7 @@ export default {
       if (this.ban.pre_result && this.ban.pre_result.success) {
         let found = false;
         let no_cands = true;
-        let max_exp_value = 0;
+        let max_exp_value = -100000;
         let max_tenpai_prob = 0;
         let max_win_prob = 0;
         let selected_exp_value = 0;
