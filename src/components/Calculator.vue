@@ -101,7 +101,7 @@
       </span>
       <div
         class="progress"
-        style="max-width: 50em; height: 2em; margin: 0.5em 1em 1em 0em"
+        style="max-width: 50em; height: 2em; margin: 0.5em 1em 0.1em 0em"
       >
         <div
           :class="['progress-bar', 'text-body']"
@@ -113,10 +113,47 @@
             (itte_modoshita ? '#bbb' : '#5bf')
           "
         >
-          期待値損失：-{{ ban.expected_lost_score_abs.toFixed(0) }} 点 (-{{
-            ban.expected_current_lost_score_abs.toFixed(0)
+          最善に対する期待値損失：-{{
+            ban.expected_lost_score_abs.toFixed(0)
           }}
+          点 (-{{ ban.expected_current_lost_score_abs.toFixed(0) }}
           点)
+        </div>
+      </div>
+      <div
+        class="progress"
+        style="max-width: 50em; height: 2em; margin: 0.5em 1em 0.1em 0em"
+      >
+        <div
+          :class="['progress-bar', 'text-body']"
+          :style="
+            'width:' +
+            ban.agari_score_rate * 100 +
+            '%; text-align: left; padding-left: 1em; overflow:visible;' +
+            'background-color: ' +
+            (itte_modoshita ? '#bbb' : '#5bf')
+          "
+        >
+          最善に対する和了率：{{ (ban.agari_score_rate * 100).toFixed(0) }} %
+          (x{{ ban.agari_score_rate_rate.toFixed(2) }})
+        </div>
+      </div>
+      <div
+        class="progress"
+        style="max-width: 50em; height: 2em; margin: 0.5em 1em 0.1em 0em"
+      >
+        <div
+          :class="['progress-bar', 'text-body']"
+          :style="
+            'width:' +
+            ban.tempai_score_rate * 100 +
+            '%; text-align: left; padding-left: 1em; overflow:visible;' +
+            'background-color: ' +
+            (itte_modoshita ? '#bbb' : '#5bf')
+          "
+        >
+          最善に対する聴牌率：{{ (ban.tempai_score_rate * 100).toFixed(0) }} %
+          (x{{ ban.tempai_score_rate_rate.toFixed(2) }})
         </div>
       </div>
       <b-overlay :show="is_calculating" rounded="sm">
@@ -330,8 +367,10 @@
           損失期待値のゲージは1000点失うと半分になります。2000点以上失うと空になります。
         </li>
         <li>
-          ロン和了が無いので幺九牌待ちのほうが和了やすいといったことは考慮されません。
+          最善に対する和了率のゲージは打牌ごとに「選択した打牌での和了率/最善の打牌での和了率」が乗算されていきます。
+          聴牌率も同様です。
         </li>
+        <li></li>
         <li>
           副露が無いので、役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。
         </li>
@@ -395,7 +434,7 @@ class XorShift {
 }
 // めんどいので雑に(vueバインドしたくない)
 let yama = [];
-const localstorage_key = "dahaisv2";
+const localstorage_key = "dahaisv3";
 
 export default {
   name: "Calculator",
@@ -433,9 +472,11 @@ export default {
       // BEGIN: 盤面
       ban: {
         expected_lost_score_abs: 0,
-        agari_score_rate: 0,
-        tempai_score_rate: 0,
+        agari_score_rate: 1,
+        tempai_score_rate: 1,
         expected_current_lost_score_abs: 0,
+        agari_score_rate_rate: 1,
+        tempai_score_rate_rate: 1,
         turn: 1, // 現在の巡目
         kawa_indicators: [], // 河
         tsumo_indicators: [], // 自摸牌
@@ -854,8 +895,10 @@ export default {
       this.ban.tsumo_indicators.splice(0, this.ban.tsumo_indicators.length);
       this.ban.result = null;
       this.ban.expected_lost_score_abs = 0;
-      this.ban.agari_score_rate = -1;
-      this.ban.tempai_score_rate = -1;
+      this.ban.agari_score_rate_rate = 1;
+      this.ban.tempai_score_rate_rate = 1;
+      this.ban.agari_score_rate = 1;
+      this.ban.tempai_score_rate = 1;
       this.ban.expected_current_lost_score_abs = 0;
     },
 
@@ -897,9 +940,11 @@ export default {
         let found = false;
         let no_cands = true;
         let max_exp_value = -100000;
+        let max_tenpai_prob = 0;
+        let max_win_prob = 0;
         let selected_exp_value = 0;
-        this.ban.agari_score_rate = -1;
-        this.ban.tempai_score_rate = -1;
+        let selected_tenpai_prob = 0;
+        let selected_win_prob = 0;
         let index = this.ban.turn - 2;
         let impl = () => {
           for (let cand of this.ban.pre_result.response.candidates) {
@@ -911,10 +956,12 @@ export default {
             let tenpai_prob = cand.tenpai_probs[index];
             let win_prob = cand.win_probs[index];
             max_exp_value = Math.max(max_exp_value, exp_value);
+            max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
+            max_win_prob = Math.max(max_win_prob, win_prob);
             if (cand.tile === tile) {
               selected_exp_value = exp_value;
-              this.ban.tempai_score_rate = +tenpai_prob;
-              this.ban.agari_score_rate = +win_prob;
+              selected_tenpai_prob = tenpai_prob;
+              selected_win_prob = win_prob;
               found = true;
             }
           }
@@ -925,14 +972,28 @@ export default {
           impl();
         }
         if (found) {
+          this.ban.agari_score_rate_rate = selected_win_prob / max_win_prob;
+          this.ban.tempai_score_rate_rate =
+            selected_tenpai_prob / max_tenpai_prob;
+          if (isNaN(this.ban.agari_score_rate_rate)) {
+            this.ban.agari_score_rate_rate = 1;
+          }
+          if (isNaN(this.ban.tempai_score_rate_rate)) {
+            this.ban.tempai_score_rate_rate = 1;
+          }
           this.ban.expected_current_lost_score_abs =
             max_exp_value - selected_exp_value;
           if (isNaN(this.ban.expected_current_lost_score_abs)) {
             this.ban.expected_current_lost_score_abs = 0;
           }
         } else {
+          let rate = no_cands ? 1 : 0;
+          this.ban.agari_score_rate_rate = rate;
+          this.ban.tempai_score_rate_rate = rate;
           this.ban.expected_current_lost_score_abs = no_cands ? 0 : 2000;
         }
+        this.ban.agari_score_rate *= this.ban.agari_score_rate_rate;
+        this.ban.tempai_score_rate *= this.ban.tempai_score_rate_rate;
         this.ban.expected_lost_score_abs += this.ban.expected_current_lost_score_abs;
       }
     },
