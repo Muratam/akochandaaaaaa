@@ -17,8 +17,6 @@
           >
             つぶやく
           </ShareNetwork>
-        </div>
-        <div>
           <b-button class="mr-2" variant="primary" @click="set_random_hand"
             >次の盤面へ
           </b-button>
@@ -26,13 +24,9 @@
         <hr />
       </div>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        {{ ban.turn }} / 18 巡目
-      </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         ドラ表示
         <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
       </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ shanten }} </span>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         {{ tile2String(bakaze) }}場
       </span>
@@ -58,17 +52,56 @@
       >
         <HandAndMeldedBlocks
           v-on:remove-tile="next_tile"
-          :tsumo="
-            ban.tsumo_indicators.length === 0
-              ? -1
-              : ban.tsumo_indicators[ban.tsumo_indicators.length - 1]
-          "
+          :tsumo="ban.tsumo_indicators[ban.tsumo_indicators.length - 1]"
           :hand_tiles="ban.hand_tiles"
           :melded_blocks="melded_blocks"
           size="lg"
         />
       </b-form-group>
-      <b> スコア </b>
+
+      <b style="padding: 1.2em 0.4em 1.2em 0.4em"> スコア </b>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ shanten }} </span>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ ban.turn }}巡目 </span>
+      <span style="padding: 1.2em 0.2em 1.2em 0.2em">
+        <TileImage
+          v-for="i in Math.min(ban.kawa_indicators.length + 1, 6)"
+          :key="i + 'warui-kawa-edayo'"
+          :tile="
+            ban.kawa_indicators.length < i ? -1 : ban.kawa_indicators[i - 1]
+          "
+          :sstyle="'width:1.4em; height: auto'"
+        />
+      </span>
+      <span style="padding: 1.2em 0.2em 1.2em 0.2em">
+        <TileImage
+          v-for="i in Math.min(
+            Math.max(0, ban.kawa_indicators.length + 1 - 6),
+            6
+          )"
+          :key="i + 'warui-kawa-edayo2'"
+          :tile="
+            ban.kawa_indicators.length < i + 6
+              ? -1
+              : ban.kawa_indicators[i - 1 + 6]
+          "
+          :sstyle="'width:1.4em; height: auto'"
+        />
+      </span>
+      <span style="padding: 1.2em 0.2em 1.2em 0.2em">
+        <TileImage
+          v-for="i in Math.min(
+            Math.max(0, ban.kawa_indicators.length + 1 - 12),
+            6
+          )"
+          :key="i + 'warui-kawa-edayo3'"
+          :tile="
+            ban.kawa_indicators.length < i + 12
+              ? -1
+              : ban.kawa_indicators[i - 1 + 12]
+          "
+          :sstyle="'width:1.4em; height: auto'"
+        />
+      </span>
       <div
         class="progress"
         style="max-width: 50em; height: 1.8em; margin: 0.2em"
@@ -1063,6 +1096,7 @@ export default {
       this.itte_modoshita = false;
 
       let hand_tiles = yama.slice(0, 14);
+      this.ban.tsumo_indicators.push(yama[0]);
       sort_tiles(hand_tiles);
       this.haipai_tiles.splice(0, this.haipai_tiles.length);
       for (let tile of hand_tiles) {

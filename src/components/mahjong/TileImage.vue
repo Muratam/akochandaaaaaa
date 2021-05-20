@@ -1,5 +1,5 @@
 <template>
-  <img :src="get_src()" :class="get_classes()" />
+  <img :src="get_src()" :class="get_classes()" :style="sstyle" />
 </template>
 
 <script>
@@ -8,16 +8,20 @@ export default {
   props: {
     tile: {
       type: Number,
-      required: true
+      required: true,
     },
     size: {
       type: String,
-      default: "sm"
+      default: "sm",
     },
     type: {
       type: String,
-      default: "upright"
-    }
+      default: "upright",
+    },
+    sstyle: {
+      type: String,
+      default: "",
+    },
   },
   methods: {
     get_src() {
@@ -39,8 +43,8 @@ export default {
       }
 
       return classes.join(" ");
-    }
-  }
+    },
+  },
 };
 </script>
 
