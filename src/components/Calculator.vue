@@ -23,6 +23,7 @@
         </div>
         <hr />
       </div>
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ ban.turn }}巡目 </span>
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         ドラ表示
         <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
@@ -58,11 +59,7 @@
           size="lg"
         />
       </b-form-group>
-
-      <b style="padding: 1.2em 0.4em 1.2em 0.4em"> スコア </b>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ shanten }} </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ ban.turn }}巡目 </span>
-      <span style="padding: 1.2em 0.2em 1.2em 0.2em">
+      <span style="padding: 1.2em 0.4em 1.2em 0em">
         <TileImage
           v-for="i in Math.min(ban.kawa_indicators.length + 1, 6)"
           :key="i + 'warui-kawa-edayo'"
@@ -72,7 +69,7 @@
           :sstyle="'width:1.4em; height: auto'"
         />
       </span>
-      <span style="padding: 1.2em 0.2em 1.2em 0.2em">
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         <TileImage
           v-for="i in Math.min(
             Math.max(0, ban.kawa_indicators.length + 1 - 6),
@@ -87,7 +84,7 @@
           :sstyle="'width:1.4em; height: auto'"
         />
       </span>
-      <span style="padding: 1.2em 0.2em 1.2em 0.2em">
+      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         <TileImage
           v-for="i in Math.min(
             Math.max(0, ban.kawa_indicators.length + 1 - 12),
@@ -104,53 +101,22 @@
       </span>
       <div
         class="progress"
-        style="max-width: 50em; height: 1.8em; margin: 0.2em"
+        style="max-width: 50em; height: 2em; margin: 0.5em 1em 1em 0em"
       >
         <div
-          :class="['progress-bar', itte_modoshita ? 'bg-secondary' : '']"
+          :class="['progress-bar', 'text-body']"
           :style="
             'width:' +
-            (ban.expected_score_rate * 100).toFixed(0) +
-            '%; text-align: left; padding-left: 1em'
+            (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 +
+            '%; text-align: left; padding-left: 1em; overflow:visible;' +
+            'background-color: ' +
+            (itte_modoshita ? '#bbb' : '#5bf')
           "
         >
-          期待値：{{ (ban.expected_score_rate * 100).toFixed(0) }} pt (x{{
-            ban.expected_score_rate_rate.toFixed(2)
-          }})
-        </div>
-      </div>
-      <div
-        class="progress"
-        style="max-width: 50em; height: 1.8em; margin: 0.2em"
-      >
-        <div
-          :class="['progress-bar', itte_modoshita ? 'bg-secondary' : '']"
-          :style="
-            'width:' +
-            (ban.agari_score_rate * 100).toFixed(0) +
-            '%; text-align: left; padding-left: 1em'
-          "
-        >
-          和了率：{{ (ban.agari_score_rate * 100).toFixed(0) }} pt (x{{
-            ban.agari_score_rate_rate.toFixed(2)
-          }})
-        </div>
-      </div>
-      <div
-        class="progress"
-        style="max-width: 50em; height: 1.8em; margin: 0.2em"
-      >
-        <div
-          :class="['progress-bar', itte_modoshita ? 'bg-secondary' : '']"
-          :style="
-            'width:' +
-            (ban.tempai_score_rate * 100).toFixed(0) +
-            '%; text-align: left; padding-left: 1em'
-          "
-        >
-          聴牌率：{{ (ban.tempai_score_rate * 100).toFixed(0) }} pt (x{{
-            ban.tempai_score_rate_rate.toFixed(2)
-          }})
+          期待値損失：-{{ ban.expected_lost_score_abs.toFixed(0) }} 点 (-{{
+            ban.expected_current_lost_score_abs.toFixed(0)
+          }}
+          点)
         </div>
       </div>
       <b-overlay :show="is_calculating" rounded="sm">
@@ -159,8 +125,8 @@
           <p>計算中</p>
         </template>
       </b-overlay>
+      <hr />
       <template v-if="ban.turn > 1">
-        <hr />
         <span style="padding: 1.2em 0.4em 1.2em 0.4em">
           <TileImage
             v-if="ban.kawa_indicators.length > 0"
@@ -185,20 +151,19 @@
           "
         />
       </template>
+      <b-button
+        v-if="ban.turn <= 1"
+        class="mr-2"
+        variant="primary"
+        @click="set_random_hand"
+        >別の盤面で遊ぶ！
+      </b-button>
     </b-tab>
     <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
       <b-button class="mr-2" variant="primary" @click="set_random_hand"
         >別の盤面で遊ぶ！
       </b-button>
-      <b-overlay :show="is_calculating" rounded="sm">
-        <template #overlay>
-          <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
-          <p>計算中</p>
-        </template>
-      </b-overlay>
       <hr />
-      <h3>盤面情報</h3>
-      <br />
       <b-form-group
         label-cols="1"
         content-cols="11"
@@ -249,12 +214,12 @@
           v-model="tacha_tempai_percent"
         />
         聴牌率： {{ tacha_tempai_percent }} % (デフォルト：72 %)<br />
-        ノーテン罰符獲得期待値： {{ "+" + tempai_noten_plus_abs }}点 <br />
-        ノーテン罰符損失期待値： {{ "-" + noten_noten_minus_abs }}点 <br />
+        不聴罰符獲得期待値： {{ "+" + tempai_noten_plus_abs }}点 <br />
+        不聴罰符損失期待値： {{ "-" + noten_noten_minus_abs }}点 <br />
       </b-form-group>
     </b-tab>
     <b-tab title="ログ" :title-link-class="linkClass(2)" class="pl-3 pr-3">
-      <h5>結果を最大直近50件まで表示します。</h5>
+      <h5>結果を最大直近100件まで表示します。</h5>
       <div
         class="card"
         v-for="log in banResultLogs"
@@ -271,13 +236,9 @@
             :url="get_state_url(log.seed)"
             hashtags="牌効率チェッカー"
             :title="
-              '期待値' +
-              log.expected_score_rate +
-              'pt・和了率' +
-              log.agari_score_rate +
-              'pt・聴牌率' +
-              log.tempai_score_rate +
-              'ptの牌効率だったよ！'
+              '期待値損失 -' +
+              log.expected_lost_score_abs +
+              '点の牌効率だったよ！'
             "
             :class="['Twitter', 'social-button']"
           >
@@ -289,61 +250,35 @@
             {{ get_state_url(log.seed) }}
           </a>
           <br />
-          <!-- 配牌：<TileImage
-            v-for="(tile, i) in log.haipai_tiles"
-            :key="i + 'log-haipai-' + log.date"
-            :tile="tile"
-          /><br /> -->
           <TileImage
             v-for="(tile, i) in log.hand_tiles"
             :key="i + 'log-hand-' + log.date"
             :tile="tile"
           />
-          <b-progress style="height: 1.8em; margin: 0.2em">
-            <b-progress-bar
-              :class="[log.itte_modoshita ? 'bg-secondary' : '']"
+          <div
+            class="progress"
+            style="max-width: 50em; height: 2em; margin: 0.5em 1em 0em 0em"
+          >
+            <div
+              :class="['progress-bar', 'text-body']"
               :style="
                 'width:' +
-                log.expected_score_rate +
-                '%; text-align: left; padding-left: 1em'
+                (Math.max(0, 2000 - log.expected_lost_score_abs) / 2000) * 100 +
+                '%; text-align: left; padding-left: 1em; overflow:visible;' +
+                'background-color: ' +
+                (log.itte_modoshita ? '#bbb' : '#5bf')
               "
             >
-              期待値：{{ log.expected_score_rate }} pt
-            </b-progress-bar>
-          </b-progress>
-          <b-progress style="height: 1.8em; margin: 0.2em">
-            <b-progress-bar
-              :class="[log.itte_modoshita ? 'bg-secondary' : '']"
-              :style="
-                'width:' +
-                log.agari_score_rate +
-                '%; text-align: left; padding-left: 1em'
-              "
-            >
-              和了率：{{ log.agari_score_rate }} pt
-            </b-progress-bar>
-          </b-progress>
-          <b-progress style="height: 1.8em; margin: 0.2em">
-            <b-progress-bar
-              :class="[log.itte_modoshita ? 'bg-secondary' : '']"
-              :style="
-                'width:' +
-                log.tempai_score_rate +
-                '%; text-align: left; padding-left: 1em'
-              "
-            >
-              聴牌率：{{ log.tempai_score_rate }} pt
-            </b-progress-bar>
-          </b-progress>
+              期待値損失：-{{ log.expected_lost_score_abs.toFixed(0) }} 点
+            </div>
+          </div>
         </div>
       </div>
     </b-tab>
     <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
       <h4>牌効率チェッカー</h4>
-      牌効率のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！
-      <hr />
-      <h4>遊び方</h4>
       <ul>
+        <li>牌効率のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！</li>
         <li>
           ここは
           <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
@@ -354,15 +289,8 @@
           )
         </li>
         <li>
-          牌を捨てると期待値・和了率・聴牌率スコアが表示されるので、高いスコアを目指しましょう。
-          期待値ゲージが100ptのまま最後まで打牌できれば、期待値最大の牌効率ができています！
+          打牌する度に自動で期待値が計算されます。失った期待値の総和の点数が表示されるので、最高の牌効率を目指しましょう！
         </li>
-        <!-- <li>
-          速度が気になる場合は<a href="../akochandaaaaa-fast/"
-            >メモリ使用高速化版</a
-          >を活用ください。メモリを大量に使用するため、環境によっては動作しないことがありますので、
-          その場合は<a href="../akochandaaaaa/">通常版</a>を活用ください。
-        </li> -->
         <li>
           <ShareNetwork
             key="Twitter"
@@ -376,7 +304,6 @@
           </ShareNetwork>
         </li>
       </ul>
-
       <hr />
       <h4>考慮される項目</h4>
       <ul>
@@ -385,7 +312,7 @@
           赤牌、裏ドラ、海底撈月、向聴戻し、手変わり を点数計算に考慮します。
         </li>
         <li>東場 / 東家。親の点数で計算します。</li>
-        <li>他家の聴牌によるノーテン罰符を考慮します。</li>
+        <li>他家の聴牌による不聴罰符を考慮します。</li>
       </ul>
 
       <hr />
@@ -396,38 +323,26 @@
         </li>
         <li>実装の都合で、すでに捨てた牌の枚数を考慮しません。</li>
         <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
-        <li>
-          ロン和了は考慮されません。幺九牌待ちのほうが和了やすいといったことは考慮されません。
-        </li>
-        <li>
-          副露が存在しません。役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。
-        </li>
         <li>積み棒、立直棒は点数計算に考慮しません。</li>
       </ul>
       <hr />
-      <h4>スコア計算式詳細</h4>
+      <h4>詳細</h4>
       <ul>
         <li>
-          各指標のスコアは、「選んだ打牌 x」と「その指標での最善の打牌
-          A」を用いて計算されます。
-          減算方式のため、悪い打牌をするとスコアは減りますが、良い打牌をしてもスコアは増えることはありません。
-          最後まで100ptに近いスコアを保てると牌効率が良いと言えるでしょう。
+          損失期待値のゲージは1000点失うと半分になります。2000点以上失うと空になります。
         </li>
         <li>
-          期待値pt：「2^-((Aの期待値-xの期待値)/1000)^2」が打牌毎に乗算されます。
-          <ul>
-            <li>
-              意味的には、「期待値で1000点失う打牌をすると-50pt」と考えるとよいでしょう。
-            </li>
-          </ul>
-        </li>
-        <li>和了率pt：「xの和了率/Aの和了率」が打牌毎に乗算されます</li>
-        <li>聴牌率pt：「xの聴牌率/Aの聴牌率」が打牌毎に乗算されます</li>
-        <li>
-          期待値：他家の聴牌によるノーテン罰符損失があるため、値が負になることがあります。
+          ロン和了が無いので幺九牌待ちのほうが和了やすいといったことは考慮されません。
         </li>
         <li>
-          期待値：他家の聴牌によるノーテン罰符獲得があるため、テンパイしていれば期待値は正になりえます。
+          副露が無いので、役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。
+        </li>
+        <li>
+          他家の聴牌による不聴罰符損失があるため、期待値が負になることがあります。
+          同様に聴牌していれば期待値は正になることがあります。
+        </li>
+        <li>
+          期待値：4向聴以上では計算コストが掛かるため。計算しません。向聴数が増える捨て牌をした場合一律-2000点と近似して計算します。
         </li>
       </ul>
     </b-tab>
@@ -482,6 +397,7 @@ class XorShift {
 }
 // めんどいので雑に(vueバインドしたくない)
 let yama = [];
+const localstorage_key = "dahaisv2";
 
 export default {
   name: "Calculator",
@@ -518,12 +434,10 @@ export default {
       tacha_tempai_percent: 72,
       // BEGIN: 盤面
       ban: {
-        expected_score_rate: 1,
-        agari_score_rate: 1,
-        tempai_score_rate: 1,
-        expected_score_rate_rate: 1,
-        agari_score_rate_rate: 1,
-        tempai_score_rate_rate: 1,
+        expected_lost_score_abs: 0,
+        agari_score_rate: 0,
+        tempai_score_rate: 0,
+        expected_current_lost_score_abs: 0,
         turn: 1, // 現在の巡目
         kawa_indicators: [], // 河
         tsumo_indicators: [], // 自摸牌
@@ -599,11 +513,9 @@ export default {
       return `${this.state_info_without_config}`;
     },
     state_info_without_config() {
-      return `期待値 ${(this.ban.expected_score_rate * 100).toFixed(
+      return `最善から ${this.ban.expected_lost_score_abs.toFixed(
         0
-      )} pt, 和了率${(this.ban.agari_score_rate * 100).toFixed(0)} pt, 聴牌率${(
-        this.ban.tempai_score_rate * 100
-      ).toFixed(0)} pt の牌効率で、${this.shanten}！`;
+      )} 点失う牌効率で ${this.shanten}！`;
     },
     state_url() {
       return this.get_state_url(this.seed);
@@ -658,14 +570,14 @@ export default {
       // 依存を無駄につける
       let logs = [];
       if (this.storage) {
-        logs = window.localStorage.getItem("dahais");
+        logs = window.localStorage.getItem(localstorage_key);
       } else {
-        logs = window.localStorage.getItem("dahais");
+        logs = window.localStorage.getItem(localstorage_key);
       }
       if (!logs) logs = [];
       else logs = JSON.parse(logs);
       logs.sort((a, b) => b.date - a.date);
-      logs.splice(50, logs.length);
+      logs.splice(100, logs.length);
       return logs;
     },
     tacha_tempai_rate() {
@@ -722,11 +634,10 @@ export default {
       }
     },
     saveCurrentResult() {
-      const key = "dahais";
-      let storage = window.localStorage.getItem(key);
+      let storage = window.localStorage.getItem(localstorage_key);
       if (!storage) storage = [];
       else storage = JSON.parse(storage);
-      let expected_score_rate = Math.floor(100 * this.ban.expected_score_rate);
+      let expected_lost_score_abs = this.ban.expected_lost_score_abs;
       let agari_score_rate = Math.floor(100 * this.ban.agari_score_rate);
       let tempai_score_rate = Math.floor(100 * this.ban.tempai_score_rate);
 
@@ -736,12 +647,12 @@ export default {
         haipai_tiles: this.haipai_tiles,
         date: new Date().getTime(),
         itte_modoshita: this.itte_modoshita,
-        expected_score_rate: expected_score_rate,
+        expected_lost_score_abs: expected_lost_score_abs,
         agari_score_rate: agari_score_rate,
         tempai_score_rate: tempai_score_rate,
       });
       this.storage = storage;
-      window.localStorage.setItem(key, JSON.stringify(storage));
+      window.localStorage.setItem(localstorage_key, JSON.stringify(storage));
     },
     calculate() {
       this.is_calculating = true;
@@ -927,12 +838,10 @@ export default {
       this.ban.kawa_indicators.splice(0, this.ban.kawa_indicators.length);
       this.ban.tsumo_indicators.splice(0, this.ban.tsumo_indicators.length);
       this.ban.result = null;
-      this.ban.expected_score_rate = 1;
-      this.ban.agari_score_rate = 1;
-      this.ban.tempai_score_rate = 1;
-      this.ban.expected_score_rate_rate = 1;
-      this.ban.agari_score_rate_rate = 1;
-      this.ban.tempai_score_rate_rate = 1;
+      this.ban.expected_lost_score_abs = 0;
+      this.ban.agari_score_rate = -1;
+      this.ban.tempai_score_rate = -1;
+      this.ban.expected_current_lost_score_abs = 0;
     },
 
     /// 長さ34の配列形式にする。
@@ -973,11 +882,9 @@ export default {
         let found = false;
         let no_cands = true;
         let max_exp_value = -100000;
-        let max_tenpai_prob = 0;
-        let max_win_prob = 0;
         let selected_exp_value = 0;
-        let selected_tenpai_prob = 0;
-        let selected_win_prob = 0;
+        this.ban.agari_score_rate = -1;
+        this.ban.tempai_score_rate = -1;
         let index = this.ban.turn - 2;
         let impl = () => {
           for (let cand of this.ban.pre_result.response.candidates) {
@@ -989,12 +896,10 @@ export default {
             let tenpai_prob = cand.tenpai_probs[index];
             let win_prob = cand.win_probs[index];
             max_exp_value = Math.max(max_exp_value, exp_value);
-            max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
-            max_win_prob = Math.max(max_win_prob, win_prob);
             if (cand.tile === tile) {
               selected_exp_value = exp_value;
-              selected_tenpai_prob = tenpai_prob;
-              selected_win_prob = win_prob;
+              this.ban.tempai_score_rate = +tenpai_prob;
+              this.ban.agari_score_rate = +win_prob;
               found = true;
             }
           }
@@ -1005,30 +910,15 @@ export default {
           impl();
         }
         if (found) {
-          let lost_exp = max_exp_value - selected_exp_value;
-          lost_exp = Math.pow(2, -(lost_exp / 1000) * (lost_exp / 1000));
-          this.ban.expected_score_rate_rate = lost_exp;
-          this.ban.agari_score_rate_rate = selected_win_prob / max_win_prob;
-          this.ban.tempai_score_rate_rate =
-            selected_tenpai_prob / max_tenpai_prob;
-          if (isNaN(this.ban.expected_score_rate_rate)) {
-            this.ban.expected_score_rate_rate = 1;
-          }
-          if (isNaN(this.ban.agari_score_rate_rate)) {
-            this.ban.agari_score_rate_rate = 1;
-          }
-          if (isNaN(this.ban.tempai_score_rate_rate)) {
-            this.ban.tempai_score_rate_rate = 1;
+          this.ban.expected_current_lost_score_abs =
+            max_exp_value - selected_exp_value;
+          if (isNaN(this.ban.expected_current_lost_score_abs)) {
+            this.ban.expected_current_lost_score_abs = 0;
           }
         } else {
-          let rate = no_cands ? 1 : 0;
-          this.ban.expected_score_rate_rate = rate;
-          this.ban.agari_score_rate_rate = rate;
-          this.ban.tempai_score_rate_rate = rate;
+          this.ban.expected_current_lost_score_abs = no_cands ? 0 : 2000;
         }
-        this.ban.expected_score_rate *= this.ban.expected_score_rate_rate;
-        this.ban.agari_score_rate *= this.ban.agari_score_rate_rate;
-        this.ban.tempai_score_rate *= this.ban.tempai_score_rate_rate;
+        this.ban.expected_lost_score_abs += this.ban.expected_current_lost_score_abs;
       }
     },
 
