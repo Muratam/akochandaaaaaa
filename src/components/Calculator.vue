@@ -312,16 +312,14 @@
           赤牌、裏ドラ、海底撈月、向聴戻し、手変わり を点数計算に考慮します。
         </li>
         <li>東場 / 東家。親の点数で計算します。</li>
+        <li>すでに捨てた牌の枚数を考慮します。</li>
         <li>他家の聴牌による不聴罰符を考慮します。</li>
       </ul>
 
       <hr />
       <h4>考慮されない項目</h4>
       <ul>
-        <li>
-          七対子・国士無双は対応しています。ですが、両天秤は考慮されません。
-        </li>
-        <li>実装の都合で、すでに捨てた牌の枚数を考慮しません。</li>
+        <li>七対子・国士無双は対応していますが、両天秤は考慮されません。</li>
         <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
         <li>積み棒、立直棒は点数計算に考慮しません。</li>
       </ul>
@@ -513,9 +511,9 @@ export default {
       return `${this.state_info_without_config}`;
     },
     state_info_without_config() {
-      return `最善から ${this.ban.expected_lost_score_abs.toFixed(
+      return `最善から${this.ban.expected_lost_score_abs.toFixed(
         0
-      )} 点失う牌効率で ${this.shanten}！`;
+      )}点失う牌効率で、${this.shanten}`;
     },
     state_url() {
       return this.get_state_url(this.seed);
@@ -550,17 +548,28 @@ export default {
     shanten() {
       if (!this.ban.result) return "?向聴";
       if (!this.ban.result.success) {
-        if (this.is_agari) return "和了";
-        else return "?向聴";
+        if (!this.is_agari) return "?向聴";
+        let s = this.ban.result.err_msg;
+        let yaku_str = s
+          .match(/役:(.+)\d+符/s)[0]
+          .replaceAll("\n", "")
+          .replace(/\d翻 /g, "")
+          .replace("役: ", "")
+          .replace(/ \S+$/, "")
+          .replace(/ /g, "・")
+          .replace("門前清自摸和", "門前ツモ");
+        let fuhan = s.match(/\d+符\d+翻/)[0];
+        let ten = s.match(/獲得点数: (\d+点)/)[1];
+        return `${yaku_str} ${fuhan} ${ten}を和了った！`;
       }
-      if (this.ban.result.response.syanten == 0) return "聴牌";
-      return this.ban.result.response.syanten + "向聴";
+      if (this.ban.result.response.syanten == 0) return "聴牌でした。";
+      return this.ban.result.response.syanten + "向聴でした...";
     },
     is_agari() {
       if (!this.ban.result) return false;
       if (
         !this.ban.result.success &&
-        this.ban.result.err_msg === "和了形です。"
+        this.is_agari_str(this.ban.result.err_msg)
       ) {
         return true;
       }
@@ -626,6 +635,10 @@ export default {
     tile2String(tile) {
       return Tile2String.get(tile);
     },
+    is_agari_str(str) {
+      if (!str) return false;
+      return str.startsWith("agari:");
+    },
     linkClass(idx) {
       if (this.tab_index === idx) {
         return "text-dark";
@@ -666,6 +679,8 @@ export default {
         flag: this.flag.reduce((a, x) => (a += x), 0) + this.maximize_target,
         hand_tiles: this.ban.hand_tiles,
         melded_blocks: this.melded_blocks,
+        tsumo: this.ban.tsumo_indicators[this.ban.tsumo_indicators.length - 1],
+        kawa: this.ban.kawa_indicators,
       };
       let impl = () => {
         if (window["Module"].process_request) {
@@ -717,7 +732,7 @@ export default {
           for (let result of results) {
             if (!result.success) {
               result_data.err_msg = result.err_msg;
-              if (result.err_msg === "和了形です。") {
+              if (this.is_agari_str(result.err_msg)) {
                 result_data.succcess = false;
                 this.saveCurrentResult();
                 break;
