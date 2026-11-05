@@ -1,11 +1,11 @@
 <template>
   <div>
-    <b-table-simple class="table">
-      <b-tbody>
+    <table class="table">
+      <tbody>
         <!-- 萬子 -->
-        <b-tr>
-          <b-th class="text-center align-middle text-nowrap">萬子</b-th>
-          <b-td class="melded_blocks">
+        <tr>
+          <th class="text-center align-middle text-nowrap">萬子</th>
+          <td class="melded_blocks">
             <BlockButton
               v-on:add-block="add_block"
               v-for="tile in ManzuTiles"
@@ -18,12 +18,12 @@
               :block="create_minkotu(Tile.Manzu5, true)"
               :disabled="is_disabled(create_minkotu(Tile.Manzu5, true))"
             />
-          </b-td>
-        </b-tr>
+          </td>
+        </tr>
         <!-- 筒子 -->
-        <b-tr>
-          <b-th class="text-center align-middle text-nowrap">筒子</b-th>
-          <b-td class="melded_blocks">
+        <tr>
+          <th class="text-center align-middle text-nowrap">筒子</th>
+          <td class="melded_blocks">
             <BlockButton
               v-on:add-block="add_block"
               v-for="tile in PinzuTiles"
@@ -36,12 +36,12 @@
               :block="create_minkotu(Tile.Pinzu5, true)"
               :disabled="is_disabled(create_minkotu(Tile.Pinzu5, true))"
             />
-          </b-td>
-        </b-tr>
+          </td>
+        </tr>
         <!-- 索子 -->
-        <b-tr>
-          <b-th class="text-center align-middle text-nowrap">索子</b-th>
-          <b-td class="melded_blocks">
+        <tr>
+          <th class="text-center align-middle text-nowrap">索子</th>
+          <td class="melded_blocks">
             <BlockButton
               v-on:add-block="add_block"
               v-for="tile in SozuTiles"
@@ -54,12 +54,12 @@
               :block="create_minkotu(Tile.Sozu5, true)"
               :disabled="is_disabled(create_minkotu(Tile.Sozu5, true))"
             />
-          </b-td>
-        </b-tr>
+          </td>
+        </tr>
         <!-- 字牌 -->
-        <b-tr>
-          <b-th class="text-center align-middle text-nowrap">字牌</b-th>
-          <b-td class="melded_blocks">
+        <tr>
+          <th class="text-center align-middle text-nowrap">字牌</th>
+          <td class="melded_blocks">
             <BlockButton
               v-on:add-block="add_block"
               v-for="tile in ZihaiTiles"
@@ -67,10 +67,10 @@
               :block="create_minkotu(tile)"
               :disabled="is_disabled(create_minkotu(tile))"
             />
-          </b-td>
-        </b-tr>
-      </b-tbody>
-    </b-table-simple>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
@@ -87,6 +87,7 @@ import {
 
 export default {
   name: "MinkotuInput",
+  emits: ["add-block"],
   components: {
     BlockButton
   },

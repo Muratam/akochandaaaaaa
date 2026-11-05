@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="icon" href="%BASE_URL%favicon.ico">
+  <title>akochandaaaaa</title>
+</head>
+
+<body>
+  <noscript>
+    <strong>We're sorry but akochandaaaaa doesn't work properly without JavaScript enabled.
+        Please enable it to continue.</strong>
+  </noscript>
+  <div id="app"></div>
+  <!-- Emscripten module (public/main.js -> main.wasm / main.data). Must stay a classic script so that window.Module is defined before the app runs. -->
+  <script vite-ignore src="%BASE_URL%main.js"></script>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>

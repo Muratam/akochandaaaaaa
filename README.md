@@ -33,4 +33,4 @@ npm run lint
 
 ### Customize configuration
 
-See [Configuration Reference](https://cli.vuejs.org/config/).
+See [Vite Configuration Reference](https://vite.dev/config/). (Vue 3 + Vite, Node.js ^20.19 / >=22.12)

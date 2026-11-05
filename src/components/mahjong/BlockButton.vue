@@ -12,6 +12,7 @@ import MeldedBlock from "./MeldedBlock.vue";
 
 export default {
   name: "BlockButton",
+  emits: ["add-block"],
   components: { MeldedBlock },
   props: {
     block: {

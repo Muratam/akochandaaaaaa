@@ -28,6 +28,7 @@ import TileButton from "./TileButton.vue";
 
 export default {
   name: "HandAndMeldedBlocks",
+  emits: ["remove-tile", "remove-block"],
   components: {
     TileButton,
   },
