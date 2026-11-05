@@ -1,99 +1,140 @@
 <template>
-  <b-container fluid class="p-0">
+  <div class="container-fluid p-0">
     <!-- 成功時 -->
     <template v-if="result && result.success">
       <!-- 打牌一覧 -->
-      <b-row v-if="!showGraph && !is_show_graph" class="mt-2">
-        <b-col>
-          <b-table
-            :fields="fields"
-            :items="items"
-            :sort-compare="sortCompare"
-            :sort-by.sync="sortBy"
-            :sort-desc.sync="sortDesc"
-          >
-            <!-- 打牌 -->
-            <template #cell(tile)="data">
-              <TileImage :tile="data.item.tile" />
-            </template>
-            <!-- 受入 -->
-            <template #cell(n_required_tiles)="data">
-              {{ data.item.required_tiles.length }}種
-              {{ data.item.n_required_tiles }}枚
-              <br v-if="data.item.syanten_down" />
-              {{ data.item.syanten_down ? "(+1向聴)" : "" }}
-            </template>
-            <!-- 有効牌 -->
-            <template #cell(required_tiles)="data">
-              <TileImage
-                v-for="(tile, i) in data.item.required_tiles"
-                :key="i"
-                :tile="tile.tile"
-              />
-            </template>
-          </b-table>
-        </b-col>
-      </b-row>
+      <div v-if="!showGraph && !is_show_graph" class="row mt-2">
+        <div class="col">
+          <table class="table b-table">
+            <thead>
+              <tr>
+                <th
+                  v-for="field in fields"
+                  :key="field.key"
+                  :style="field.thStyle"
+                  :class="{ sortable: field.sortable }"
+                  :aria-sort="ariaSort(field)"
+                  @click="onHeaderClick(field)"
+                >
+                  {{ field.label }}
+                  <span v-if="field.sortable" class="sort-icon">{{
+                    sortIcon(field)
+                  }}</span>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, rowIndex) in sortedItems" :key="rowIndex">
+                <td
+                  v-for="field in fields"
+                  :key="field.key"
+                  :class="cellClass(item, field)"
+                >
+                  <!-- 打牌 -->
+                  <template v-if="field.key === 'tile'">
+                    <TileImage :tile="item.tile" />
+                  </template>
+                  <!-- 受入 -->
+                  <template v-else-if="field.key === 'n_required_tiles'">
+                    {{ item.required_tiles.length }}種
+                    {{ item.n_required_tiles }}枚
+                    <br v-if="item.syanten_down" />
+                    {{ item.syanten_down ? "(+1向聴)" : "" }}
+                  </template>
+                  <!-- 有効牌 -->
+                  <template v-else-if="field.key === 'required_tiles'">
+                    <TileImage
+                      v-for="(tile, i) in item.required_tiles"
+                      :key="i"
+                      :tile="tile.tile"
+                    />
+                  </template>
+                  <template v-else>
+                    {{
+                      field.formatter
+                        ? field.formatter(item[field.key])
+                        : item[field.key]
+                    }}
+                  </template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
       <!-- グラフ -->
       <template v-if="showGraph">
         <div class="chart">
-          <b-form-group
-            label-cols="0"
-            label=""
-            label-for="input-line-type"
-            label-align="right"
-          >
-            <b-form-radio-group
+          <div class="mb-3">
+            <div
               id="input-line-type"
-              v-model="line_type"
-              :options="line_options"
-              button-variant="outline-secondary"
-              size="sm"
-              buttons
-            ></b-form-radio-group>
-          </b-form-group>
-          <b-row class="mt-2">
-            <b-col>
-              <LineChart
-                :chartData="lineData"
-                :options="lineOptions"
-              ></LineChart>
-            </b-col>
-          </b-row>
+              class="btn-group btn-group-sm"
+              role="group"
+            >
+              <template v-for="opt in line_options" :key="opt.value">
+                <input
+                  type="radio"
+                  class="btn-check"
+                  name="input-line-type"
+                  :id="'input-line-type-' + opt.value"
+                  :value="opt.value"
+                  v-model="line_type"
+                  autocomplete="off"
+                />
+                <label
+                  class="btn btn-outline-secondary"
+                  :for="'input-line-type-' + opt.value"
+                  >{{ opt.text }}</label
+                >
+              </template>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col">
+              <LineChart :chartData="lineData" :options="lineOptions" />
+            </div>
+          </div>
         </div>
       </template>
-      <b-alert v-else-if="is_show_graph" show variant="danger">
+      <div v-else-if="is_show_graph" class="alert alert-danger" role="alert">
         向聴数が大きすぎてグラフを作成できませんでした
-      </b-alert>
+      </div>
     </template>
 
     <!-- 失敗時 -->
-    <b-alert v-else-if="result && !result.success" show variant="danger"
-      >{{ result.err_msg }}
-    </b-alert>
-  </b-container>
+    <div
+      v-else-if="result && !result.success"
+      class="alert alert-danger"
+      role="alert"
+    >
+      {{ result.err_msg }}
+    </div>
+  </div>
 </template>
 
 <script>
-/*eslint-disable */
-import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
+import { defineAsyncComponent } from "vue";
 import TileImage from "@/components/mahjong/TileImage.vue";
 import { TileOrder, TilePriority, Tile2String } from "@/mahjong.js";
-import LineChart from "@/components/LineChart.js";
+// chart.js はグラフ表示時のみ必要なので遅延ロードする
+const LineChart = defineAsyncComponent(() =>
+  import("@/components/LineChart.vue")
+);
 
 export default {
   name: "Result",
 
   components: {
-    HandAndMeldedBlocks,
     TileImage,
     LineChart,
   },
 
   data() {
     return {
-      sortDesc: true,
+      // b-table の sort-by / sort-desc 相当のローカル状態
+      localSortBy: null,
+      localSortDesc: true,
       line_options: [
         {
           value: "exp_values",
@@ -113,15 +154,29 @@ export default {
   },
 
   methods: {
-    sortCompare(
-      aRow,
-      bRow,
-      key,
-      sortDesc,
-      formatter,
-      compareOptions,
-      compareLocale
-    ) {
+    onHeaderClick(field) {
+      if (!field.sortable) return;
+      if (this.localSortBy === field.key) {
+        this.localSortDesc = !this.localSortDesc;
+      } else {
+        this.localSortBy = field.key;
+        this.localSortDesc = false;
+      }
+    },
+    ariaSort(field) {
+      if (!field.sortable) return null;
+      if (this.localSortBy !== field.key) return "none";
+      return this.localSortDesc ? "descending" : "ascending";
+    },
+    sortIcon(field) {
+      if (this.localSortBy !== field.key) return "\u21C5";
+      return this.localSortDesc ? "\u25BC" : "\u25B2";
+    },
+    cellClass(item, field) {
+      const variant = item._cellVariants && item._cellVariants[field.key];
+      return variant ? `table-${variant}` : null;
+    },
+    sortCompare(aRow, bRow, key) {
       const a = aRow[key];
       const b = bRow[key];
 
@@ -149,16 +204,24 @@ export default {
       ) {
         return a - b;
       } else {
-        return toString(a).localeCompare(
-          toString(b),
-          compareLocale,
-          compareOptions
-        );
+        return String(a ?? "").localeCompare(String(b ?? ""), undefined, {
+          numeric: true,
+        });
       }
     },
   },
 
   computed: {
+    sortedItems() {
+      const key = this.localSortBy;
+      if (!key) return this.items;
+      const desc = this.localSortDesc;
+      // 安定ソート (Array.prototype.sort は安定)
+      return this.items.slice().sort((a, b) => {
+        const v = this.sortCompare(a, b, key);
+        return desc ? -v : v;
+      });
+    },
     showGraph() {
       if (!this.result || !this.result.success) return false;
       let res = this.result.response;
@@ -172,81 +235,79 @@ export default {
 
       let req = this.result.request;
 
-      let xlabel = this.line_options.find((x) => x.value == this.line_type)
-        .text;
+      let xlabel = this.line_options.find(
+        (x) => x.value == this.line_type
+      ).text;
       let options = {
-        annotation: {
-          annotations: [
-            {
-              type: "line",
-              id: "vLine",
-              mode: "vertical",
-              scaleID: "x-axis-0",
-              value: req.turn,
-              borderWidth: 2,
-              borderColor: "darkred",
-              borderDash: [2, 2],
-              label: {
-                enabled: true,
-                position: "top",
-                content: "現在",
+        plugins: {
+          annotation: {
+            annotations: {
+              vLine: {
+                type: "line",
+                scaleID: "x",
+                // カテゴリ軸 (1〜17巡目) のインデックス
+                value: req.turn - 1,
+                borderWidth: 2,
+                borderColor: "darkred",
+                borderDash: [2, 2],
+                label: {
+                  display: true,
+                  position: "start",
+                  content: "現在",
+                },
               },
             },
-          ],
-        },
+          },
 
-        tooltips: {
-          callbacks: {
-            title: function (tooltipItems, data) {
-              return tooltipItems[0].xLabel + "巡目";
-            },
+          tooltip: {
+            callbacks: {
+              title: function (tooltipItems) {
+                return tooltipItems[0].label + "巡目";
+              },
 
-            label: function (tooltipItem, data) {
-              let label = data.datasets[tooltipItem.datasetIndex].label;
+              label: function (context) {
+                let label = context.dataset.label;
 
-              let value = tooltipItem.yLabel;
+                let value = context.parsed.y;
 
-              if (value <= 1) {
-                value = (value * 100).toFixed(2) + "%";
-              } else {
-                value = Math.round(value) + "点";
-              }
+                if (value <= 1) {
+                  value = (value * 100).toFixed(2) + "%";
+                } else {
+                  value = Math.round(value) + "点";
+                }
 
-              return label + ": " + value;
+                return label + ": " + value;
+              },
             },
           },
-        },
 
-        legend: {
-          align: "start",
+          legend: {
+            align: "start",
+          },
         },
 
         animation: false,
 
         scales: {
-          xAxes: [
-            {
-              scaleLabel: {
-                display: true,
-                labelString: "巡目",
-              },
+          x: {
+            title: {
+              display: true,
+              text: "巡目",
             },
-          ],
-          yAxes: [
-            {
-              scaleLabel: {
-                display: true,
-                labelString: xlabel,
-              },
+          },
+          y: {
+            title: {
+              display: true,
+              text: xlabel,
+            },
 
-              ticks: {
-                callback: function (x) {
-                  // 確率は%、期待値は点を末尾に付ける。
-                  return x <= 1 ? Math.round(x * 100) + "%" : x + "点";
-                },
+            ticks: {
+              callback: function (x) {
+                // 確率は%、期待値は点を末尾に付ける。
+                return x <= 1 ? Math.round(x * 100) + "%" : x + "点";
               },
             },
-          ],
+          },
         },
       };
 
@@ -254,7 +315,8 @@ export default {
     },
 
     lineData() {
-      if (!this.result || !this.result.success) return {};
+      if (!this.result || !this.result.success)
+        return { labels: [], datasets: [] };
 
       let colors = [
         "#e351d1",
@@ -282,7 +344,7 @@ export default {
           label: Tile2String.get(candidate.tile),
           data: candidate[this.line_type],
           fill: false,
-          lineTension: 0,
+          tension: 0,
           borderColor: colors[i],
           // hidden: i >= 5,
         });
@@ -485,6 +547,12 @@ export default {
   props: ["result", "hand_tiles", "is_show_graph", "selected_tile"],
 
   watch: {
+    sortBy: {
+      handler(value) {
+        this.localSortBy = value || null;
+      },
+      immediate: true,
+    },
     result: function (result) {
       if (!result || !result.success) return;
 
@@ -537,5 +605,15 @@ export default {
 
 .chart {
   max-width: 600px;
+}
+
+th.sortable {
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sort-icon {
+  opacity: 0.5;
+  font-size: 0.8em;
 }
 </style>

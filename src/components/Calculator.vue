@@ -1,25 +1,36 @@
 <template>
-  <b-tabs content-class="mt-3" v-model="tab_index">
-    <b-tab title="盤面" :title-link-class="linkClass(0)" class="pl-3 pr-3">
+  <div class="tabs">
+    <ul class="nav nav-tabs" role="tablist">
+      <li v-for="(title, idx) in tab_titles" :key="title" class="nav-item" role="presentation">
+        <a
+          href="#"
+          role="tab"
+          :class="['nav-link', { active: tab_index === idx }, linkClass(idx)]"
+          :aria-selected="tab_index === idx ? 'true' : 'false'"
+          @click.prevent="tab_index = idx"
+          >{{ title }}</a
+        >
+      </li>
+    </ul>
+    <div class="tab-content mt-3">
+    <div v-show="tab_index === 0" class="tab-pane active ps-3 pe-3" role="tabpanel">
       <div v-if="ban.turn >= 18 || is_agari">
         <h5><b>リザルト</b></h5>
         <div style="padding: 0em 0em 1em 0em">
           <b>{{ state_info_without_config }} </b>
         </div>
         <div style="padding: 0em 0em 1em 0em">
-          <ShareNetwork
-            key="Twitter"
-            network="Twitter"
+          <TwitterShare
             :url="state_url"
             hashtags="牌効率チェッカー"
             :title="state_info"
             :class="['Twitter', 'social-button']"
           >
             つぶやく
-          </ShareNetwork>
-          <b-button class="mr-2" variant="primary" @click="set_random_hand"
+          </TwitterShare>
+          <button type="button" class="btn btn-primary me-2" @click="set_random_hand"
             >次の盤面へ
-          </b-button>
+          </button>
         </div>
         <hr />
       </div>
@@ -34,31 +45,26 @@
       <span style="padding: 1.2em 0.4em 1.2em 0.4em">
         {{ tile2String(zikaze) }}家
       </span>
-      <b-button class="mr-2" variant="light" @click="reset_hand"
+      <button type="button" class="btn btn-light me-2" @click="reset_hand"
         >はじめから
-      </b-button>
-      <b-button
+      </button>
+      <button
         v-if="pre_ban && ban.turn < 18 && !is_agari"
-        class="mr-2"
-        variant="light"
+        type="button" class="btn btn-light me-2"
         @click="back_hand"
         >一手戻す
-      </b-button>
-      <b-form-group
-        label-cols="0"
-        content-cols="12"
-        label=""
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
+      </button>
+      <div class="row mb-3 p-0">
+        <div class="col-12">
         <HandAndMeldedBlocks
-          v-on:remove-tile="next_tile"
+          @remove-tile="next_tile"
           :tsumo="ban.tsumo_indicators[ban.tsumo_indicators.length - 1]"
           :hand_tiles="ban.hand_tiles"
           :melded_blocks="melded_blocks"
           size="lg"
         />
-      </b-form-group>
+        </div>
+      </div>
       <span style="padding: 1.2em 0.4em 1.2em 0em">
         <TileImage
           v-for="i in Math.min(ban.kawa_indicators.length + 1, 6)"
@@ -156,12 +162,12 @@
           (x{{ ban.tempai_score_rate_rate.toFixed(2) }})
         </div>
       </div>
-      <b-overlay :show="is_calculating" rounded="sm">
-        <template #overlay>
-          <b-icon icon="three-dots" animation="cylon" font-scale="4"></b-icon>
+      <div class="calc-overlay-wrap">
+        <div v-if="is_calculating" class="calc-overlay">
+          <div class="spinner-grow text-secondary" role="status"></div>
           <p>計算中</p>
-        </template>
-      </b-overlay>
+        </div>
+      </div>
       <hr />
       <template v-if="ban.turn > 1">
         <span style="padding: 1.2em 0.4em 1.2em 0.4em">
@@ -188,74 +194,62 @@
           "
         />
       </template>
-      <b-button
+      <button
         v-if="ban.turn <= 1"
-        class="mr-2"
-        variant="primary"
+        type="button" class="btn btn-primary me-2"
         @click="set_random_hand"
         >別の盤面で遊ぶ！
-      </b-button>
-    </b-tab>
-    <b-tab title="メニュー" :title-link-class="linkClass(1)" class="pl-3 pr-3">
-      <b-button class="mr-2" variant="primary" @click="set_random_hand"
+      </button>
+    </div>
+    <div v-show="tab_index === 1" class="tab-pane active ps-3 pe-3" role="tabpanel">
+      <button type="button" class="btn btn-primary me-2" @click="set_random_hand"
         >別の盤面で遊ぶ！
-      </b-button>
+      </button>
       <hr />
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="配牌"
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
+      <div class="row mb-3 p-0">
+        <legend class="col-1 col-form-label text-end">配牌</legend>
+        <div class="col-11">
         <HandAndMeldedBlocks
           :hand_tiles="haipai_tiles"
           :melded_blocks="melded_blocks"
           size="lg"
         />
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="シード"
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
+        </div>
+      </div>
+      <div class="row mb-3 p-0">
+        <legend class="col-1 col-form-label text-end">シード</legend>
+        <div class="col-11">
         <legend class="col-form-label">
           {{ seed }}
         </legend>
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="盤面URL"
-        label-align="right"
-        class="ban.kawa_indicators p-0"
-      >
+        </div>
+      </div>
+      <div class="row mb-3 p-0">
+        <legend class="col-1 col-form-label text-end">盤面URL</legend>
+        <div class="col-11">
         <legend class="col-form-label">
-          <b-button class="mr-2" variant="light" @click="copy_url"
+          <button type="button" class="btn btn-light me-2" @click="copy_url"
             >共有用 URL をコピー
-          </b-button>
+          </button>
         </legend>
-      </b-form-group>
-      <b-form-group
-        label-cols="1"
-        content-cols="11"
-        label="他家設定"
-        label-align="right"
-      >
-        <b-input
+        </div>
+      </div>
+      <div class="row mb-3">
+        <legend class="col-1 col-form-label text-end">他家設定</legend>
+        <div class="col-11">
+        <input
           type="range"
-          class="form-control-range"
+          class="form-range"
           style="max-width: 30em"
           v-model="tacha_tempai_percent"
         />
         聴牌率： {{ tacha_tempai_percent }} % (デフォルト：72 %)<br />
         不聴罰符獲得期待値： {{ "+" + tempai_noten_plus_abs }}点 <br />
         不聴罰符損失期待値： {{ "-" + noten_noten_minus_abs }}点 <br />
-      </b-form-group>
-    </b-tab>
-    <b-tab title="ログ" :title-link-class="linkClass(2)" class="pl-3 pr-3">
+        </div>
+      </div>
+    </div>
+    <div v-show="tab_index === 2" class="tab-pane active ps-3 pe-3" role="tabpanel">
       <h5>結果を最大直近100件まで表示します。</h5>
       <div
         class="card"
@@ -267,9 +261,7 @@
           class="card-body"
           style="padding: 0; margin: 0.4em; line-height: 1.8em"
         >
-          <ShareNetwork
-            key="Twitter"
-            network="Twitter"
+          <TwitterShare
             :url="get_state_url(log.seed)"
             hashtags="牌効率チェッカー"
             :title="
@@ -280,7 +272,7 @@
             :class="['Twitter', 'social-button']"
           >
             つぶやく
-          </ShareNetwork>
+          </TwitterShare>
           {{ new Date(log.date).toLocaleString() }}
           <br />
           <a :href="get_state_url(log.seed)">
@@ -311,8 +303,8 @@
           </div>
         </div>
       </div>
-    </b-tab>
-    <b-tab title="遊び方" :title-link-class="linkClass(2)" class="pl-3 pr-3">
+    </div>
+    <div v-show="tab_index === 3" class="tab-pane active ps-3 pe-3" role="tabpanel">
       <h4>牌効率チェッカー</h4>
       <ul>
         <li>牌効率のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！</li>
@@ -329,16 +321,14 @@
           打牌する度に自動で期待値が計算されます。失った期待値の総和の点数が表示されるので、最高の牌効率を目指しましょう！
         </li>
         <li>
-          <ShareNetwork
-            key="Twitter"
-            network="Twitter"
+          <TwitterShare
             :url="state_url_pure"
             hashtags="牌効率チェッカー"
             title="牌効率チェッカーで、牌効率をチェック！"
             :class="['Twitter', 'social-button']"
           >
             Twitter
-          </ShareNetwork>
+          </TwitterShare>
         </li>
       </ul>
       <hr />
@@ -384,8 +374,9 @@
           期待値は立直を考慮して計算されますが、立直操作はできません。そのため和了点数が期待値以下になることがあります。
         </li>
       </ul>
-    </b-tab>
-  </b-tabs>
+    </div>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -402,6 +393,7 @@ import {
 import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
 import TileImage from "@/components/mahjong/TileImage.vue";
 import Result from "./Result.vue";
+import TwitterShare from "./TwitterShare.vue";
 
 class XorShift {
   constructor(s) {
@@ -434,6 +426,11 @@ class XorShift {
     return this.w / 0x100000000;
   }
 }
+// requestIdleCallback 未対応ブラウザ (古い Safari 等) 向けのフォールバック
+const requestIdle =
+  typeof window.requestIdleCallback === "function"
+    ? (cb) => window.requestIdleCallback(cb)
+    : (cb) => setTimeout(cb, 1);
 // めんどいので雑に(vueバインドしたくない)
 let yama = [];
 const localstorage_key = "dahaisv3";
@@ -444,6 +441,7 @@ export default {
     HandAndMeldedBlocks,
     Result,
     TileImage,
+    TwitterShare,
   },
   data() {
     let next_seed = new URL(window.location.href).searchParams.get("q");
@@ -455,6 +453,7 @@ export default {
     return {
       // Description
       tab_index: 0,
+      tab_titles: ["盤面", "メニュー", "ログ", "遊び方"],
       // data
       bakaze: Tile.Ton, // 場風
       zikaze: Tile.Ton, // 自風
@@ -620,7 +619,7 @@ export default {
     },
     banResultLogs() {
       // 依存を無駄につける
-      let logs = [];
+      let logs;
       if (this.storage) {
         logs = window.localStorage.getItem(localstorage_key);
       } else {
@@ -719,14 +718,14 @@ export default {
         bakaze: this.bakaze,
         turn: Math.min(17, this.ban.turn),
         dora_indicators: this.dora_indicators,
-        flag: this.flag.reduce((a, x) => (a += x), 0) + this.maximize_target,
+        flag: this.flag.reduce((a, x) => a + x, 0) + this.maximize_target,
         hand_tiles: this.ban.hand_tiles,
         melded_blocks: this.melded_blocks,
         tsumo: this.ban.tsumo_indicators[this.ban.tsumo_indicators.length - 1],
         kawa: this.ban.kawa_indicators,
       };
       let impl = () => {
-        if (window["Module"].process_request) {
+        if (window["Module"] && window["Module"].process_request) {
           let results = [];
           try {
             data.syanten_type = 1;
@@ -878,12 +877,12 @@ export default {
           this.ban.result = result_data;
           this.is_calculating = false;
         } else {
-          requestIdleCallback(impl);
+          requestIdle(impl);
         }
       };
       // 次の結果のアニメーションを安定して実行
       setTimeout(() => {
-        requestIdleCallback(impl);
+        requestIdle(impl);
       }, 800);
     },
 
@@ -1093,7 +1092,19 @@ export default {
   text-align: left;
   padding-top: 5px;
 }
+.calc-overlay-wrap {
+  position: relative;
+}
+.calc-overlay {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  z-index: 10;
+}
 .social-button {
+  text-decoration: none;
   font-weight: bold;
   color: white;
   border-radius: 3px;

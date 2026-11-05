@@ -12,6 +12,7 @@ import TileImage from "./TileImage.vue";
 
 export default {
   name: "TileButton",
+  emits: ["add-tile"],
   components: { TileImage },
   props: {
     tile: {
