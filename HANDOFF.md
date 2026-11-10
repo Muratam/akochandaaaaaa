@@ -13,7 +13,7 @@
 
 ## 2. アプリ
 - **技術構成**: Vue 3 + Vite（`base: /akochandaaaaa/`）の静的サイト。麻雀の計算は emscripten の `public/main.js`・`main.wasm`・`main.data`（`window.Module.process_request`）。配るのは nginx のコンテナ（`Dockerfile`・`docker/nginx.conf`。uid 10001、読み取り専用、大きいファイルはビルド時に gzip）。サーバー側の処理・DB・秘密は無い。盤面のログはブラウザの localStorage だけ。
-- **テスト**: `npm run lint`・`npm run build`。
+- **テスト**: `npm run lint`・`npm test`（約 1.5 分。wasm を Node で動かし、決まった手で 5 局打って `test/golden.json` と突き合わせる。golden は UI を作り直す前の版をブラウザで打った記録）・`npm run build`。
 - **デプロイ**: master に入れてから（PR）、ラボで `scripts/deploy-lab.sh`。`/akochandaaaaa/api/health` が 200 を返すことを確かめる。
   - murata: `sudo incus exec --project user-1001 apps -- /srv/akochandaaaaaa/scripts/deploy-lab.sh`
   - 管理者AI: `incus exec apps -- /srv/akochandaaaaaa/scripts/deploy-lab.sh`

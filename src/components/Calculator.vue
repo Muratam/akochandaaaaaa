@@ -394,38 +394,16 @@ import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
 import TileImage from "@/components/mahjong/TileImage.vue";
 import Result from "./Result.vue";
 import TwitterShare from "./TwitterShare.vue";
+import {
+  makeYama,
+  tempaiNotenPlusAbs,
+  notenNotenMinusAbs,
+  isAgariStr,
+  requestAll,
+  mergeResults,
+  scoreDiscard,
+} from "@/game.js";
 
-class XorShift {
-  constructor(s) {
-    // Xorshift128 (init seed with Xorshift32)
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.x = 123456789 ^ s;
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.y = 362436069 ^ s;
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.z = 521288629 ^ s;
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.w = 88675123 ^ s;
-  }
-  // 0 ~ 1
-  random() {
-    let t = this.x ^ (this.x << 11);
-    this.x = this.y;
-    this.y = this.z;
-    this.z = this.w;
-    // >>>0 means 'cast to uint32'
-    this.w = (this.w ^ (this.w >>> 19) ^ (t ^ (t >>> 8))) >>> 0;
-    return this.w / 0x100000000;
-  }
-}
 // requestIdleCallback 未対応ブラウザ (古い Safari 等) 向けのフォールバック
 const requestIdle =
   typeof window.requestIdleCallback === "function"
@@ -635,20 +613,10 @@ export default {
       return this.tacha_tempai_percent / 100;
     },
     tempai_noten_plus_abs() {
-      let x = this.tacha_tempai_rate;
-      return (
-        3 * x * (1 - x) * x * 1000 +
-        3 * x * (1 - x) * (1 - x) * 1500 +
-        (1 - x) * (1 - x) * (1 - x) * 3000
-      ).toFixed(0);
+      return tempaiNotenPlusAbs(this.tacha_tempai_rate);
     },
     noten_noten_minus_abs() {
-      let x = this.tacha_tempai_rate;
-      return (
-        x * x * x * 3000 +
-        3 * x * (1 - x) * x * 1500 +
-        3 * x * (1 - x) * (1 - x) * 1000
-      ).toFixed(0);
+      return notenNotenMinusAbs(this.tacha_tempai_rate);
     },
   },
 
@@ -664,22 +632,11 @@ export default {
     get_state_url(seed) {
       return `${this.state_url_pure}?q=${seed}`;
     },
-    unwrap_aka(tile) {
-      if (tile === Tile.AkaManzu5) {
-        return Tile.Manzu5;
-      } else if (tile === Tile.AkaPinzu5) {
-        return Tile.Pinzu5;
-      } else if (tile === Tile.AkaSozu5) {
-        return Tile.Sozu5;
-      }
-      return tile;
-    },
     tile2String(tile) {
       return Tile2String.get(tile);
     },
     is_agari_str(str) {
-      if (!str) return false;
-      return str.startsWith("agari:");
+      return isAgariStr(str);
     },
     linkClass(idx) {
       if (this.tab_index === idx) {
@@ -726,154 +683,17 @@ export default {
       };
       let impl = () => {
         if (window["Module"] && window["Module"].process_request) {
-          let results = [];
-          try {
-            data.syanten_type = 1;
-            results.push(
-              JSON.parse(window["Module"].process_request(JSON.stringify(data)))
-            );
-          } catch {
-            console.log(JSON.stringify(data));
-          }
-          // 七対子とかは失敗しやすい
-          try {
-            data.syanten_type = 2;
-            let parsed = JSON.parse(
-              window["Module"].process_request(JSON.stringify(data))
-            );
-            results.push(parsed);
-          } catch {
-            console.log(JSON.stringify(data));
-          }
-          try {
-            data.syanten_type = 4;
-            let parsed = JSON.parse(
-              window["Module"].process_request(JSON.stringify(data))
-            );
-            results.push(parsed);
-          } catch {
-            console.log(JSON.stringify(data));
-          }
-          // console.log(results.map((x) => x.response.syanten));
-          results.sort((a, b) => {
-            return (
-              (a.response != undefined ? a.response.syanten : -1) -
-              (b.response != undefined ? b.response.syanten : -1)
-            );
-          });
-          let result_data = {
-            success: false,
-            request: results[0].request,
-            response: {
-              candidates: [],
-              result_type: 1,
-              syanten: 100,
-              time: 0,
-            },
-          };
-          for (let result of results) {
-            if (!result.success) {
-              result_data.err_msg = result.err_msg;
-              if (this.is_agari_str(result.err_msg)) {
-                result_data.succcess = false;
-                this.saveCurrentResult();
-                break;
-              }
-              continue;
-            }
-            result_data.success = true;
-            for (let cand of result.response.candidates) {
-              if (!cand) continue;
-              if (!cand.exp_values) continue;
-              if (!cand.win_probs) continue;
-              if (!cand.tenpai_probs) continue;
-              for (let i = 0; i < cand.exp_values.length; i++) {
-                let cand_exp = cand.exp_values[i];
-                let win_prob = cand.win_probs[i];
-                let tenpai_prob = cand.tenpai_probs[i];
-                let exp_truth =
-                  cand_exp +
-                  (tenpai_prob - win_prob) * this.tempai_noten_plus_abs -
-                  (1 - tenpai_prob + win_prob) * this.noten_noten_minus_abs;
-                cand.exp_values[i] = exp_truth;
-              }
-            }
-            if (result_data.response.syanten < result.response.syanten) {
-              // 新しいやつが弱い場合
-              if (result.response.syanten >= 4) continue;
-              if (
-                result_data.response.syanten + 1 !==
-                result.response.syanten
-              ) {
-                continue;
-              }
-              for (let i = 0; i < result.response.candidates.length; i++) {
-                let cand = result.response.candidates[i];
-                if (cand.syanten_down) {
-                  result.response.candidates[i] = null;
-                } else {
-                  result.response.candidates[i].syanten_down = true;
-                }
-              }
-            } else if (result_data.response.syanten > result.response.syanten) {
-              if (result_data.response.syanten === 100) {
-                result_data.response = result.response;
-              } else {
-                // 新しいやつが強い場合はソートしているので無い
-                console.log("sort failed");
-              }
-              continue;
-            }
-            for (let cand of result.response.candidates) {
-              if (!cand) continue;
-              let found = false;
-              for (let i = 0; i < result_data.response.candidates.length; i++) {
-                let saved = result_data.response.candidates[i];
-                if (saved.tile !== cand.tile) continue;
-                found = true;
-                // 期待値が大きい方。
-                if (!saved.exp_values && cand.exp_values) {
-                  result_data.response.candidates[i] = cand;
-                  continue;
-                }
-                if (!cand.exp_values && saved.exp_values) {
-                  continue;
-                }
-                if (cand.exp_values && saved.exp_values) {
-                  let cand_exp = cand.exp_values[data.turn - 1];
-                  let saved_exp = saved.exp_values[data.turn - 1];
-                  if (cand_exp > saved_exp) {
-                    result_data.response.candidates[i] = cand;
-                  }
-                  continue;
-                }
-                // syanten_down: (...)
-                if (saved.syanten_down !== cand.syanten_down) {
-                  if (saved.syanten_down) {
-                    result_data.response.candidates[i] = cand;
-                    continue;
-                  }
-                }
-                // required_tiles: (...)
-                let cand_sum = 0;
-                let saved_sum = 0;
-                for (let t of saved.required_tiles) {
-                  saved_sum += t.count;
-                }
-                for (let t of cand.required_tiles) {
-                  cand_sum += t.count;
-                }
-                if (cand_sum >= saved_sum) {
-                  result_data.response.candidates[i] = cand;
-                }
-                break;
-              }
-              if (!found) {
-                result_data.response.candidates.push(cand);
-                continue;
-              }
-            }
-          }
+          let results = requestAll(
+            (json) => window["Module"].process_request(json),
+            data
+          );
+          let { result: result_data, agari } = mergeResults(
+            results,
+            data.turn,
+            this.tempai_noten_plus_abs,
+            this.noten_noten_minus_abs
+          );
+          if (agari) this.saveCurrentResult();
           this.ban.result = result_data;
           this.is_calculating = false;
         } else {
@@ -938,61 +758,10 @@ export default {
       }
       this.calculate();
       if (this.ban.pre_result && this.ban.pre_result.success) {
-        let found = false;
-        let no_cands = true;
-        let max_exp_value = -100000;
-        let max_tenpai_prob = 0;
-        let max_win_prob = 0;
-        let selected_exp_value = 0;
-        let selected_tenpai_prob = 0;
-        let selected_win_prob = 0;
-        let index = this.ban.turn - 2;
-        let impl = () => {
-          for (let cand of this.ban.pre_result.response.candidates) {
-            if (!cand.exp_values) return;
-            if (!cand.tenpai_probs) return;
-            if (!cand.win_probs) return;
-            no_cands = false;
-            let exp_value = cand.exp_values[index];
-            let tenpai_prob = cand.tenpai_probs[index];
-            let win_prob = cand.win_probs[index];
-            max_exp_value = Math.max(max_exp_value, exp_value);
-            max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
-            max_win_prob = Math.max(max_win_prob, win_prob);
-            if (cand.tile === tile) {
-              selected_exp_value = exp_value;
-              selected_tenpai_prob = tenpai_prob;
-              selected_win_prob = win_prob;
-              found = true;
-            }
-          }
-        };
-        impl();
-        if (!found) {
-          tile = this.unwrap_aka(tile);
-          impl();
-        }
-        if (found) {
-          this.ban.agari_score_rate_rate = selected_win_prob / max_win_prob;
-          this.ban.tempai_score_rate_rate =
-            selected_tenpai_prob / max_tenpai_prob;
-          if (isNaN(this.ban.agari_score_rate_rate)) {
-            this.ban.agari_score_rate_rate = 1;
-          }
-          if (isNaN(this.ban.tempai_score_rate_rate)) {
-            this.ban.tempai_score_rate_rate = 1;
-          }
-          this.ban.expected_current_lost_score_abs =
-            max_exp_value - selected_exp_value;
-          if (isNaN(this.ban.expected_current_lost_score_abs)) {
-            this.ban.expected_current_lost_score_abs = 0;
-          }
-        } else {
-          let rate = no_cands ? 1 : 0;
-          this.ban.agari_score_rate_rate = rate;
-          this.ban.tempai_score_rate_rate = rate;
-          this.ban.expected_current_lost_score_abs = no_cands ? 0 : 2000;
-        }
+        let score = scoreDiscard(this.ban.pre_result, tile, this.ban.turn - 2);
+        this.ban.agari_score_rate_rate = score.agari_rate_rate;
+        this.ban.tempai_score_rate_rate = score.tempai_rate_rate;
+        this.ban.expected_current_lost_score_abs = score.lost;
         this.ban.agari_score_rate *= this.ban.agari_score_rate_rate;
         this.ban.tempai_score_rate *= this.ban.tempai_score_rate_rate;
         this.ban.expected_lost_score_abs += this.ban.expected_current_lost_score_abs;
@@ -1032,33 +801,7 @@ export default {
     },
     reset_hand() {
       this.clear_hand();
-      const shuffle = ([...array]) => {
-        let xorshift = new XorShift(this.seed);
-        for (let i = array.length - 1; i >= 0; i--) {
-          const j = Math.floor(xorshift.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      };
-
-      // 牌山を作成する。
-      yama = [];
-      let max_yama = 34;
-      for (let i = 0; i < max_yama; ++i) {
-        yama = yama.concat(Array(4).fill(i));
-      }
-      yama[Tile.Manzu5 * 4] = Tile.AkaManzu5;
-      yama[Tile.Pinzu5 * 4] = Tile.AkaPinzu5;
-      yama[Tile.Sozu5 * 4] = Tile.AkaSozu5;
-
-      // ドラ表示牌は削除する。
-      for (let tile of this.dora_indicators) {
-        let i = yama.indexOf(tile);
-        yama.splice(i, 1);
-      }
-
-      // 洗牌する。
-      yama = shuffle(yama);
+      yama = makeYama(this.seed, this.dora_indicators);
       this.next_seed = Math.floor(0x100000000 * Math.random());
       this.itte_modoshita = false;
 

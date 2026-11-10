@@ -8,7 +8,8 @@
     "serve": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "node --test test/"
   },
   "engines": {
     "node": "^20.19.0 || >=22.12.0"
