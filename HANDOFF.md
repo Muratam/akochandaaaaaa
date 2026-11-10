@@ -13,7 +13,7 @@
 
 ## 2. アプリ
 - **技術構成**: Vue 3 + Vite（`base: /akochandaaaaa/`）の静的サイト。麻雀の計算は emscripten の `public/main.js`・`main.wasm`・`main.data`（`window.Module.process_request`）。配るのは nginx のコンテナ（`Dockerfile`・`docker/nginx.conf`。uid 10001、読み取り専用、大きいファイルはビルド時に gzip）。サーバー側の処理・DB・秘密は無い。盤面のログはブラウザの localStorage だけ。
-- **画面**: sagisawa のポータル（`Muratam/sagisawa` の `portal/src/app/globals.css`）と同じトークンの暗い版（`src/style.css`）。Bootstrap は使わない。手牌は下に固定した台（親指の届く位置）。ポータルの iframe（左にナビ）の中でもトップでも崩れないこと、スマホ（iPhone 13）と PC（1280）で確かめる。
+- **画面**: sagisawa のポータル（`Muratam/sagisawa` の `portal/src/app/globals.css`）と同じトークンの暗い版（`src/style.css`）。Bootstrap は使わない。手牌は下に固定した台（親指の届く位置）。画面は `100dvh` の縦の枠にちょうど収め、ページ全体はスクロールしない（伸びる中身は中の枠で送る。手牌の位置は 1 局の間動かない）。前の一手は「自分と最善の打牌・差」の 1 行で、候補の表は「候補」で開く。ポータルの iframe（左にナビ）の中でもトップでも崩れないこと、スマホ（iPhone 13）と PC（1280）で、1 局を打ってスクロール量 0・手牌の座標が変わらないことを確かめる。
 - **テスト**: `npm run lint`・`npm test`（約 1.5 分。wasm を Node で動かし、決まった手で 5 局打って `test/golden.json` と突き合わせる。golden は UI を作り直す前の版をブラウザで打った記録）・`npm run build`。
 - **デプロイ**: master に入れてから（PR）、ラボで `scripts/deploy-lab.sh`。`/akochandaaaaa/api/health` が 200 を返すことを確かめる。
   - murata: `sudo incus exec --project user-1001 apps -- /srv/akochandaaaaaa/scripts/deploy-lab.sh`
