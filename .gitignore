@@ -21,3 +21,9 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# ラボの bind 先（scripts/deploy-lab.sh が .env.example から作る）
+.env
+
+# Claude Code の作業用 worktree
+.claude/worktrees/
