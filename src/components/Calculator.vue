@@ -1,188 +1,154 @@
 <template>
-  <div class="tabs">
-    <ul class="nav nav-tabs" role="tablist">
-      <li v-for="(title, idx) in tab_titles" :key="title" class="nav-item" role="presentation">
-        <a
-          href="#"
+  <div class="ako">
+    <header class="ako-head">
+      <div class="ako-brand">
+        <span class="ako-mark" aria-hidden="true">牌</span>
+        <h1 class="ako-name">牌効率チェッカー</h1>
+      </div>
+      <div class="ako-tabs" role="tablist" aria-label="画面">
+        <button
+          v-for="(title, idx) in tab_titles"
+          :key="title"
+          :id="'tab-' + idx"
+          type="button"
           role="tab"
-          :class="['nav-link', { active: tab_index === idx }, linkClass(idx)]"
+          class="ako-tab"
           :aria-selected="tab_index === idx ? 'true' : 'false'"
-          @click.prevent="tab_index = idx"
-          >{{ title }}</a
+          :aria-controls="'tabpanel-' + idx"
+          @click="tab_index = idx"
         >
-      </li>
-    </ul>
-    <div class="tab-content mt-3">
-    <div v-show="tab_index === 0" class="tab-pane active ps-3 pe-3" role="tabpanel">
-      <div v-if="ban.turn >= 18 || is_agari">
-        <h5><b>リザルト</b></h5>
-        <div style="padding: 0em 0em 1em 0em">
-          <b>{{ state_info_without_config }} </b>
-        </div>
-        <div style="padding: 0em 0em 1em 0em">
+          {{ title }}
+        </button>
+      </div>
+    </header>
+
+    <!-- 盤面 -->
+    <section
+      v-show="tab_index === 0"
+      id="tabpanel-0"
+      class="ako-main board"
+      role="tabpanel"
+      aria-labelledby="tab-0"
+    >
+      <div v-if="is_finished" class="panel finish">
+        <h2>結果</h2>
+        <p class="finish-text">{{ state_info_without_config }}</p>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" @click="set_random_hand">
+            次の盤面へ
+          </button>
           <TwitterShare
             :url="state_url"
             hashtags="牌効率チェッカー"
             :title="state_info"
-            :class="['Twitter', 'social-button']"
+            class="btn"
           >
             つぶやく
           </TwitterShare>
-          <button type="button" class="btn btn-primary me-2" @click="set_random_hand"
-            >次の盤面へ
-          </button>
-        </div>
-        <hr />
-      </div>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em"> {{ ban.turn }}巡目 </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        ドラ表示
-        <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
-      </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        {{ tile2String(bakaze) }}場
-      </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        {{ tile2String(zikaze) }}家
-      </span>
-      <button type="button" class="btn btn-light me-2" @click="reset_hand"
-        >はじめから
-      </button>
-      <button
-        v-if="pre_ban && ban.turn < 18 && !is_agari"
-        type="button" class="btn btn-light me-2"
-        @click="back_hand"
-        >一手戻す
-      </button>
-      <div class="row mb-3 p-0">
-        <div class="col-12">
-        <HandAndMeldedBlocks
-          @remove-tile="next_tile"
-          :tsumo="ban.tsumo_indicators[ban.tsumo_indicators.length - 1]"
-          :hand_tiles="ban.hand_tiles"
-          :melded_blocks="melded_blocks"
-          size="lg"
-        />
         </div>
       </div>
-      <span style="padding: 1.2em 0.4em 1.2em 0em">
-        <TileImage
-          v-for="i in Math.min(ban.kawa_indicators.length + 1, 6)"
-          :key="i + 'warui-kawa-edayo'"
-          :tile="
-            ban.kawa_indicators.length < i ? -1 : ban.kawa_indicators[i - 1]
-          "
-          :sstyle="'width:1.4em; height: auto'"
-        />
-      </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        <TileImage
-          v-for="i in Math.min(
-            Math.max(0, ban.kawa_indicators.length + 1 - 6),
-            6
-          )"
-          :key="i + 'warui-kawa-edayo2'"
-          :tile="
-            ban.kawa_indicators.length < i + 6
-              ? -1
-              : ban.kawa_indicators[i - 1 + 6]
-          "
-          :sstyle="'width:1.4em; height: auto'"
-        />
-      </span>
-      <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-        <TileImage
-          v-for="i in Math.min(
-            Math.max(0, ban.kawa_indicators.length + 1 - 12),
-            6
-          )"
-          :key="i + 'warui-kawa-edayo3'"
-          :tile="
-            ban.kawa_indicators.length < i + 12
-              ? -1
-              : ban.kawa_indicators[i - 1 + 12]
-          "
-          :sstyle="'width:1.4em; height: auto'"
-        />
-      </span>
-      <div
-        class="progress"
-        style="max-width: 50em; height: 2em; margin: 0.5em 1em 0.1em 0em"
-      >
-        <div
-          :class="['progress-bar', 'text-body']"
-          :style="
-            'width:' +
-            (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 +
-            '%; text-align: left; padding-left: 1em; overflow:visible;' +
-            'background-color: ' +
-            (itte_modoshita ? '#bbb' : '#5bf')
-          "
-        >
-          最善に対する期待値損失：-{{
-            ban.expected_lost_score_abs.toFixed(0)
-          }}
-          点 (-{{ ban.expected_current_lost_score_abs.toFixed(0) }}
-          点)
+
+      <div class="panel score">
+        <dl class="table-info">
+          <div>
+            <dt>ドラ表示</dt>
+            <dd class="tiles">
+              <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
+            </dd>
+          </div>
+          <div>
+            <dt>場</dt>
+            <dd>{{ tile2String(bakaze) }}場</dd>
+          </div>
+          <div>
+            <dt>自風</dt>
+            <dd>{{ tile2String(zikaze) }}家</dd>
+          </div>
+          <span v-if="itte_modoshita" class="chip">一手戻した</span>
+        </dl>
+        <p class="gauges-cap">最善に対する</p>
+        <ul class="gauges">
+          <li>
+            <div class="gauge-row">
+              <span class="gauge-label">期待値損失</span>
+              <span class="gauge-value num">-{{ ban.expected_lost_score_abs.toFixed(0) }}点</span>
+            </div>
+            <div :class="['meter', { 'is-muted': itte_modoshita }]">
+              <i
+                :style="{
+                  width:
+                    (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 + '%',
+                }"
+              ></i>
+            </div>
+            <p class="gauge-sub">
+              この一手<br /><span class="num">-{{ ban.expected_current_lost_score_abs.toFixed(0) }}点</span>
+            </p>
+          </li>
+          <li>
+            <div class="gauge-row">
+              <span class="gauge-label">和了率</span>
+              <span class="gauge-value num">{{ (ban.agari_score_rate * 100).toFixed(0) }}%</span>
+            </div>
+            <div :class="['meter', { 'is-muted': itte_modoshita }]">
+              <i :style="{ width: ban.agari_score_rate * 100 + '%' }"></i>
+            </div>
+            <p class="gauge-sub">
+              この一手<br /><span class="num">x{{ ban.agari_score_rate_rate.toFixed(2) }}</span>
+            </p>
+          </li>
+          <li>
+            <div class="gauge-row">
+              <span class="gauge-label">聴牌率</span>
+              <span class="gauge-value num">{{ (ban.tempai_score_rate * 100).toFixed(0) }}%</span>
+            </div>
+            <div :class="['meter', { 'is-muted': itte_modoshita }]">
+              <i :style="{ width: ban.tempai_score_rate * 100 + '%' }"></i>
+            </div>
+            <p class="gauge-sub">
+              この一手<br /><span class="num">x{{ ban.tempai_score_rate_rate.toFixed(2) }}</span>
+            </p>
+          </li>
+        </ul>
+      </div>
+
+      <div v-if="ban.turn <= 1 && !is_finished" class="start">
+        <p class="quiet">下の手牌から、捨てる牌を押す。押すたびに最善の打牌と比べて採点する。</p>
+        <button type="button" class="btn" @click="set_random_hand">
+          別の盤面で遊ぶ！
+        </button>
+      </div>
+
+      <div v-if="ban.kawa_indicators.length > 0" class="panel">
+        <div class="panel-head">
+          <h2>河</h2>
+          <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
+        </div>
+        <div class="kawa">
+          <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
         </div>
       </div>
-      <div
-        class="progress"
-        style="max-width: 50em; height: 2em; margin: 0.5em 1em 0.1em 0em"
-      >
-        <div
-          :class="['progress-bar', 'text-body']"
-          :style="
-            'width:' +
-            ban.agari_score_rate * 100 +
-            '%; text-align: left; padding-left: 1em; overflow:visible;' +
-            'background-color: ' +
-            (itte_modoshita ? '#bbb' : '#5bf')
-          "
-        >
-          最善に対する和了率：{{ (ban.agari_score_rate * 100).toFixed(0) }} %
-          (x{{ ban.agari_score_rate_rate.toFixed(2) }})
+
+      <div v-if="ban.turn > 1" class="panel prev">
+        <div class="panel-head">
+          <h2>前の一手</h2>
+          <span class="panel-aside">{{ ban.turn - 1 }}巡目の候補</span>
         </div>
-      </div>
-      <div
-        class="progress"
-        style="max-width: 50em; height: 2em; margin: 0.5em 1em 0.1em 0em"
-      >
-        <div
-          :class="['progress-bar', 'text-body']"
-          :style="
-            'width:' +
-            ban.tempai_score_rate * 100 +
-            '%; text-align: left; padding-left: 1em; overflow:visible;' +
-            'background-color: ' +
-            (itte_modoshita ? '#bbb' : '#5bf')
-          "
-        >
-          最善に対する聴牌率：{{ (ban.tempai_score_rate * 100).toFixed(0) }} %
-          (x{{ ban.tempai_score_rate_rate.toFixed(2) }})
+        <div class="prev-move">
+          <span class="prev-discard">
+            <TileImage
+              :tile="
+                ban.kawa_indicators.length > 0
+                  ? ban.kawa_indicators[ban.kawa_indicators.length - 1]
+                  : -1
+              "
+            />
+          </span>
+          <span class="prev-arrow" aria-hidden="true">←</span>
+          <span class="tiles prev-hand">
+            <TileImage v-for="(tile, i) in ban.pre_hand_tiles" :key="i" :tile="tile" />
+          </span>
         </div>
-      </div>
-      <div class="calc-overlay-wrap">
-        <div v-if="is_calculating" class="calc-overlay">
-          <div class="spinner-grow text-secondary" role="status"></div>
-          <p>計算中</p>
-        </div>
-      </div>
-      <hr />
-      <template v-if="ban.turn > 1">
-        <span style="padding: 1.2em 0.4em 1.2em 0.4em">
-          <TileImage
-            v-if="ban.kawa_indicators.length > 0"
-            :tile="ban.kawa_indicators[ban.kawa_indicators.length - 1]"
-          />
-          <TileImage v-if="ban.kawa_indicators.length <= 0" :tile="-1" />
-          ←
-          <TileImage
-            v-for="(tile, i) in ban.pre_hand_tiles"
-            :key="i"
-            :tile="tile"
-          />
-        </span>
         <Result
           :result="ban.pre_result"
           :is_show_graph="false"
@@ -193,189 +159,229 @@
               : -1
           "
         />
-      </template>
-      <button
-        v-if="ban.turn <= 1"
-        type="button" class="btn btn-primary me-2"
-        @click="set_random_hand"
-        >別の盤面で遊ぶ！
-      </button>
-    </div>
-    <div v-show="tab_index === 1" class="tab-pane active ps-3 pe-3" role="tabpanel">
-      <button type="button" class="btn btn-primary me-2" @click="set_random_hand"
-        >別の盤面で遊ぶ！
-      </button>
-      <hr />
-      <div class="row mb-3 p-0">
-        <legend class="col-1 col-form-label text-end">配牌</legend>
-        <div class="col-11">
+      </div>
+
+      <!-- 手牌は親指の届く下に置く -->
+      <div class="dock" :aria-busy="is_calculating ? 'true' : 'false'">
+        <div class="dock-bar">
+          <span class="dock-turn"><span class="num">{{ ban.turn }}</span>巡目</span>
+          <span v-if="is_calculating" class="dock-state is-busy" role="status">計算中</span>
+          <span v-else-if="is_finished" class="dock-state">終局</span>
+          <span class="dock-actions">
+            <button
+              v-if="pre_ban && ban.turn < 18 && !is_agari"
+              type="button"
+              class="btn btn-quiet btn-small"
+              @click="back_hand"
+            >
+              一手戻す
+            </button>
+            <button type="button" class="btn btn-quiet btn-small" @click="reset_hand">
+              はじめから
+            </button>
+          </span>
+        </div>
         <HandAndMeldedBlocks
-          :hand_tiles="haipai_tiles"
+          @remove-tile="next_tile"
+          :tsumo="ban.tsumo_indicators[ban.tsumo_indicators.length - 1]"
+          :hand_tiles="ban.hand_tiles"
           :melded_blocks="melded_blocks"
+          :disabled="is_calculating || is_finished"
           size="lg"
         />
-        </div>
       </div>
-      <div class="row mb-3 p-0">
-        <legend class="col-1 col-form-label text-end">シード</legend>
-        <div class="col-11">
-        <legend class="col-form-label">
-          {{ seed }}
-        </legend>
-        </div>
-      </div>
-      <div class="row mb-3 p-0">
-        <legend class="col-1 col-form-label text-end">盤面URL</legend>
-        <div class="col-11">
-        <legend class="col-form-label">
-          <button type="button" class="btn btn-light me-2" @click="copy_url"
-            >共有用 URL をコピー
+    </section>
+
+    <!-- メニュー -->
+    <section
+      v-show="tab_index === 1"
+      id="tabpanel-1"
+      class="ako-main"
+      role="tabpanel"
+      aria-labelledby="tab-1"
+    >
+      <div class="panel">
+        <div class="panel-head"><h2>この盤面</h2></div>
+        <dl class="kv">
+          <div class="kv-wide">
+            <dt>配牌</dt>
+            <dd class="tiles haipai">
+              <TileImage v-for="(tile, i) in haipai_tiles" :key="i" :tile="tile" />
+            </dd>
+          </div>
+          <div>
+            <dt>シード</dt>
+            <dd class="num">{{ seed }}</dd>
+          </div>
+          <div>
+            <dt>盤面の URL</dt>
+            <dd class="copy">
+              <button type="button" class="btn btn-small" @click="copy_url">
+                共有用 URL をコピー
+              </button>
+              <span class="fine" role="status">{{ copy_status }}</span>
+            </dd>
+          </div>
+        </dl>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" @click="set_random_hand">
+            別の盤面で遊ぶ！
           </button>
-        </legend>
         </div>
       </div>
-      <div class="row mb-3">
-        <legend class="col-1 col-form-label text-end">他家設定</legend>
-        <div class="col-11">
+
+      <div class="panel">
+        <div class="panel-head"><h2>他家の設定</h2></div>
+        <label class="range-label" for="tacha-tempai">
+          他家の聴牌率
+          <span class="num range-value">{{ tacha_tempai_percent }}%</span>
+          <span class="fine">（既定 72%）</span>
+        </label>
         <input
+          id="tacha-tempai"
           type="range"
-          class="form-range"
-          style="max-width: 30em"
+          class="range"
           v-model="tacha_tempai_percent"
         />
-        聴牌率： {{ tacha_tempai_percent }} % (デフォルト：72 %)<br />
-        不聴罰符獲得期待値： {{ "+" + tempai_noten_plus_abs }}点 <br />
-        不聴罰符損失期待値： {{ "-" + noten_noten_minus_abs }}点 <br />
-        </div>
-      </div>
-    </div>
-    <div v-show="tab_index === 2" class="tab-pane active ps-3 pe-3" role="tabpanel">
-      <h5>結果を最大直近100件まで表示します。</h5>
-      <div
-        class="card"
-        v-for="log in banResultLogs"
-        :key="log.date"
-        style="max-width: 35em; margin-bottom: 0.2em"
-      >
-        <div
-          class="card-body"
-          style="padding: 0; margin: 0.4em; line-height: 1.8em"
-        >
-          <TwitterShare
-            :url="get_state_url(log.seed)"
-            hashtags="牌効率チェッカー"
-            :title="
-              '期待値損失 -' +
-              log.expected_lost_score_abs +
-              '点の牌効率だったよ！'
-            "
-            :class="['Twitter', 'social-button']"
-          >
-            つぶやく
-          </TwitterShare>
-          {{ new Date(log.date).toLocaleString() }}
-          <br />
-          <a :href="get_state_url(log.seed)">
-            {{ get_state_url(log.seed) }}
-          </a>
-          <br />
-          <TileImage
-            v-for="(tile, i) in log.hand_tiles"
-            :key="i + 'log-hand-' + log.date"
-            :tile="tile"
-          />
-          <div
-            class="progress"
-            style="max-width: 50em; height: 2em; margin: 0.5em 1em 0em 0em"
-          >
-            <div
-              :class="['progress-bar', 'text-body']"
-              :style="
-                'width:' +
-                (Math.max(0, 2000 - log.expected_lost_score_abs) / 2000) * 100 +
-                '%; text-align: left; padding-left: 1em; overflow:visible;' +
-                'background-color: ' +
-                (log.itte_modoshita ? '#bbb' : '#5bf')
-              "
-            >
-              期待値損失：-{{ log.expected_lost_score_abs.toFixed(0) }} 点
-            </div>
+        <dl class="kv kv-compact">
+          <div>
+            <dt>不聴罰符の獲得期待値</dt>
+            <dd class="num">{{ "+" + tempai_noten_plus_abs }}点</dd>
           </div>
-        </div>
+          <div>
+            <dt>不聴罰符の損失期待値</dt>
+            <dd class="num">{{ "-" + noten_noten_minus_abs }}点</dd>
+          </div>
+        </dl>
       </div>
-    </div>
-    <div v-show="tab_index === 3" class="tab-pane active ps-3 pe-3" role="tabpanel">
-      <h4>牌効率チェッカー</h4>
-      <ul>
-        <li>牌効率のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！</li>
-        <li>
-          ここは
-          <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
-            >https://pystyle.info/apps/mahjong-nanikiru-simulator/</a
-          >
-          を改変した、一人麻雀の練習ができるサイトです。 (
-          <a href="https://github.com/Muratam/akochandaaaaaa">GitHub</a>
-          )
+    </section>
+
+    <!-- ログ -->
+    <section
+      v-show="tab_index === 2"
+      id="tabpanel-2"
+      class="ako-main"
+      role="tabpanel"
+      aria-labelledby="tab-2"
+    >
+      <p class="quiet">直近の結果を 100 件まで、このブラウザに残す。</p>
+      <p v-if="banResultLogs.length === 0" class="panel quiet">
+        まだ記録がない。18巡目まで打つか和了ると、ここに残る。
+      </p>
+      <ul class="logs">
+        <li v-for="log in banResultLogs" :key="log.date" class="panel log">
+          <div class="log-head">
+            <time class="fine">{{ new Date(log.date).toLocaleString() }}</time>
+            <span v-if="log.itte_modoshita" class="chip">一手戻した</span>
+            <span class="log-lost num">-{{ log.expected_lost_score_abs.toFixed(0) }}点</span>
+          </div>
+          <div class="tiles log-tiles">
+            <TileImage
+              v-for="(tile, i) in log.hand_tiles"
+              :key="i + 'log-hand-' + log.date"
+              :tile="tile"
+            />
+          </div>
+          <div :class="['meter', { 'is-muted': log.itte_modoshita }]">
+            <i
+              :style="{
+                width: (Math.max(0, 2000 - log.expected_lost_score_abs) / 2000) * 100 + '%',
+              }"
+            ></i>
+          </div>
+          <div class="log-actions">
+            <a :href="get_state_url(log.seed)" class="btn btn-small btn-quiet">この盤面をもう一度</a>
+            <TwitterShare
+              :url="get_state_url(log.seed)"
+              hashtags="牌効率チェッカー"
+              :title="'期待値損失 -' + log.expected_lost_score_abs + '点の牌効率だったよ！'"
+              class="btn btn-small btn-quiet"
+            >
+              つぶやく
+            </TwitterShare>
+          </div>
         </li>
-        <li>
-          打牌する度に自動で期待値が計算されます。失った期待値の総和の点数が表示されるので、最高の牌効率を目指しましょう！
-        </li>
-        <li>
+      </ul>
+    </section>
+
+    <!-- 遊び方 -->
+    <section
+      v-show="tab_index === 3"
+      id="tabpanel-3"
+      class="ako-main howto"
+      role="tabpanel"
+      aria-labelledby="tab-3"
+    >
+      <div class="panel">
+        <div class="panel-head"><h2>牌効率チェッカー</h2></div>
+        <ul>
+          <li>牌効率のチェックだﾞアﾞアﾞァﾞﾞァﾞアﾞ～～～～～！</li>
+          <li>
+            ここは
+            <a href="https://pystyle.info/apps/mahjong-nanikiru-simulator/"
+              >https://pystyle.info/apps/mahjong-nanikiru-simulator/</a
+            >
+            を改変した、一人麻雀の練習ができるサイトです。（<a
+              href="https://github.com/Muratam/akochandaaaaaa"
+              >GitHub</a
+            >）
+          </li>
+          <li>
+            打牌する度に自動で期待値が計算されます。失った期待値の総和の点数が表示されるので、最高の牌効率を目指しましょう！
+          </li>
+        </ul>
+        <div class="actions">
           <TwitterShare
             :url="state_url_pure"
             hashtags="牌効率チェッカー"
             title="牌効率チェッカーで、牌効率をチェック！"
-            :class="['Twitter', 'social-button']"
+            class="btn btn-small"
           >
-            Twitter
+            Twitter で紹介する
           </TwitterShare>
-        </li>
-      </ul>
-      <hr />
-      <h4>考慮される項目</h4>
-      <ul>
-        <li>一人麻雀であり、ツモ和了のみが考慮されます。</li>
-        <li>
-          赤牌、裏ドラ、海底撈月、向聴戻し、手変わり を点数計算に考慮します。
-        </li>
-        <li>東場 / 東家。親の点数で計算します。</li>
-        <li>すでに捨てた牌の枚数を考慮します。</li>
-        <li>他家の聴牌による不聴罰符を考慮します。</li>
-      </ul>
-
-      <hr />
-      <h4>考慮されない項目</h4>
-      <ul>
-        <li>七対子・国士無双は対応していますが、両天秤は考慮されません。</li>
-        <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
-        <li>積み棒、立直棒は点数計算に考慮しません。</li>
-      </ul>
-      <hr />
-      <h4>詳細</h4>
-      <ul>
-        <li>
-          損失期待値のゲージは1000点失うと半分になります。2000点以上失うと空になります。
-        </li>
-        <li>
-          最善に対する和了率のゲージは打牌ごとに「選択した打牌での和了率/最善の打牌での和了率」が乗算されていきます。
-          聴牌率も同様です。
-        </li>
-        <li>
-          副露が無いので、役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。
-        </li>
-        <li>
-          他家の聴牌による不聴罰符損失があるため、期待値が負になることがあります。
-          同様に聴牌していれば期待値は正になることがあります。
-        </li>
-        <li>
-          4向聴以上では計算コストが掛かるため、期待値計算はされません。向聴数が増える捨て牌をした場合一律-2000点と近似して計算します。
-        </li>
-        <li>
-          期待値は立直を考慮して計算されますが、立直操作はできません。そのため和了点数が期待値以下になることがあります。
-        </li>
-      </ul>
-    </div>
-    </div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>考慮される項目</h2></div>
+        <ul>
+          <li>一人麻雀であり、ツモ和了のみが考慮されます。</li>
+          <li>赤牌、裏ドラ、海底撈月、向聴戻し、手変わり を点数計算に考慮します。</li>
+          <li>東場 / 東家。親の点数で計算します。</li>
+          <li>すでに捨てた牌の枚数を考慮します。</li>
+          <li>他家の聴牌による不聴罰符を考慮します。</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>考慮されない項目</h2></div>
+        <ul>
+          <li>七対子・国士無双は対応していますが、両天秤は考慮されません。</li>
+          <li>副露 (ポン、チー、暗槓、明槓、加槓)は考慮されません。</li>
+          <li>積み棒、立直棒は点数計算に考慮しません。</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>詳細</h2></div>
+        <ul>
+          <li>損失期待値のゲージは1000点失うと半分になります。2000点以上失うと空になります。</li>
+          <li>
+            最善に対する和了率のゲージは打牌ごとに「選択した打牌での和了率/最善の打牌での和了率」が乗算されていきます。
+            聴牌率も同様です。
+          </li>
+          <li>副露が無いので、役牌や染め手など鳴かないと成立しづらい役の価値が過小評価されます。</li>
+          <li>
+            他家の聴牌による不聴罰符損失があるため、期待値が負になることがあります。
+            同様に聴牌していれば期待値は正になることがあります。
+          </li>
+          <li>
+            4向聴以上では計算コストが掛かるため、期待値計算はされません。向聴数が増える捨て牌をした場合一律-2000点と近似して計算します。
+          </li>
+          <li>
+            期待値は立直を考慮して計算されますが、立直操作はできません。そのため和了点数が期待値以下になることがあります。
+          </li>
+          <li>一手戻すと、ゲージは灰色になり、ログにも「一手戻した」と残ります。</li>
+        </ul>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -394,38 +400,16 @@ import HandAndMeldedBlocks from "@/components/mahjong/HandAndMeldedBlocks.vue";
 import TileImage from "@/components/mahjong/TileImage.vue";
 import Result from "./Result.vue";
 import TwitterShare from "./TwitterShare.vue";
+import {
+  makeYama,
+  tempaiNotenPlusAbs,
+  notenNotenMinusAbs,
+  isAgariStr,
+  requestAll,
+  mergeResults,
+  scoreDiscard,
+} from "@/game.js";
 
-class XorShift {
-  constructor(s) {
-    // Xorshift128 (init seed with Xorshift32)
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.x = 123456789 ^ s;
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.y = 362436069 ^ s;
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.z = 521288629 ^ s;
-    s ^= s << 13;
-    s ^= 2 >>> 17;
-    s ^= s << 5;
-    this.w = 88675123 ^ s;
-  }
-  // 0 ~ 1
-  random() {
-    let t = this.x ^ (this.x << 11);
-    this.x = this.y;
-    this.y = this.z;
-    this.z = this.w;
-    // >>>0 means 'cast to uint32'
-    this.w = (this.w ^ (this.w >>> 19) ^ (t ^ (t >>> 8))) >>> 0;
-    return this.w / 0x100000000;
-  }
-}
 // requestIdleCallback 未対応ブラウザ (古い Safari 等) 向けのフォールバック
 const requestIdle =
   typeof window.requestIdleCallback === "function"
@@ -470,6 +454,7 @@ export default {
       is_calculating: false,
       storage: [],
       tacha_tempai_percent: 72,
+      copy_status: "",
       // BEGIN: 盤面
       ban: {
         expected_lost_score_abs: 0,
@@ -607,6 +592,10 @@ export default {
       if (this.ban.result.response.syanten == 0) return "聴牌でした。";
       return this.ban.result.response.syanten + "向聴でした...";
     },
+    // 18巡目まで打ったか、和了った
+    is_finished() {
+      return this.ban.turn >= 18 || this.is_agari;
+    },
     is_agari() {
       if (!this.ban.result) return false;
       if (
@@ -635,58 +624,35 @@ export default {
       return this.tacha_tempai_percent / 100;
     },
     tempai_noten_plus_abs() {
-      let x = this.tacha_tempai_rate;
-      return (
-        3 * x * (1 - x) * x * 1000 +
-        3 * x * (1 - x) * (1 - x) * 1500 +
-        (1 - x) * (1 - x) * (1 - x) * 3000
-      ).toFixed(0);
+      return tempaiNotenPlusAbs(this.tacha_tempai_rate);
     },
     noten_noten_minus_abs() {
-      let x = this.tacha_tempai_rate;
-      return (
-        x * x * x * 3000 +
-        3 * x * (1 - x) * x * 1500 +
-        3 * x * (1 - x) * (1 - x) * 1000
-      ).toFixed(0);
+      return notenNotenMinusAbs(this.tacha_tempai_rate);
     },
   },
 
   methods: {
     copy_url() {
-      navigator.clipboard.writeText(this.state_url).then(() => {
-        alert(
-          this.state_url +
-            " をコピーしました。\nこのURLを共有すると、誰でもこの盤面を生成できます。"
-        );
-      });
+      const url = this.state_url;
+      Promise.resolve()
+        .then(() => navigator.clipboard.writeText(url))
+        .then(
+        () => {
+          this.copy_status = "コピーした。この URL を開くと、誰でも同じ盤面で遊べる。";
+        },
+        () => {
+          this.copy_status = `コピーできなかった。${url} を手で写す。`;
+        }
+      );
     },
     get_state_url(seed) {
       return `${this.state_url_pure}?q=${seed}`;
-    },
-    unwrap_aka(tile) {
-      if (tile === Tile.AkaManzu5) {
-        return Tile.Manzu5;
-      } else if (tile === Tile.AkaPinzu5) {
-        return Tile.Pinzu5;
-      } else if (tile === Tile.AkaSozu5) {
-        return Tile.Sozu5;
-      }
-      return tile;
     },
     tile2String(tile) {
       return Tile2String.get(tile);
     },
     is_agari_str(str) {
-      if (!str) return false;
-      return str.startsWith("agari:");
-    },
-    linkClass(idx) {
-      if (this.tab_index === idx) {
-        return "text-dark";
-      } else {
-        return "text-dark";
-      }
+      return isAgariStr(str);
     },
     saveCurrentResult() {
       let storage = window.localStorage.getItem(localstorage_key);
@@ -726,154 +692,17 @@ export default {
       };
       let impl = () => {
         if (window["Module"] && window["Module"].process_request) {
-          let results = [];
-          try {
-            data.syanten_type = 1;
-            results.push(
-              JSON.parse(window["Module"].process_request(JSON.stringify(data)))
-            );
-          } catch {
-            console.log(JSON.stringify(data));
-          }
-          // 七対子とかは失敗しやすい
-          try {
-            data.syanten_type = 2;
-            let parsed = JSON.parse(
-              window["Module"].process_request(JSON.stringify(data))
-            );
-            results.push(parsed);
-          } catch {
-            console.log(JSON.stringify(data));
-          }
-          try {
-            data.syanten_type = 4;
-            let parsed = JSON.parse(
-              window["Module"].process_request(JSON.stringify(data))
-            );
-            results.push(parsed);
-          } catch {
-            console.log(JSON.stringify(data));
-          }
-          // console.log(results.map((x) => x.response.syanten));
-          results.sort((a, b) => {
-            return (
-              (a.response != undefined ? a.response.syanten : -1) -
-              (b.response != undefined ? b.response.syanten : -1)
-            );
-          });
-          let result_data = {
-            success: false,
-            request: results[0].request,
-            response: {
-              candidates: [],
-              result_type: 1,
-              syanten: 100,
-              time: 0,
-            },
-          };
-          for (let result of results) {
-            if (!result.success) {
-              result_data.err_msg = result.err_msg;
-              if (this.is_agari_str(result.err_msg)) {
-                result_data.succcess = false;
-                this.saveCurrentResult();
-                break;
-              }
-              continue;
-            }
-            result_data.success = true;
-            for (let cand of result.response.candidates) {
-              if (!cand) continue;
-              if (!cand.exp_values) continue;
-              if (!cand.win_probs) continue;
-              if (!cand.tenpai_probs) continue;
-              for (let i = 0; i < cand.exp_values.length; i++) {
-                let cand_exp = cand.exp_values[i];
-                let win_prob = cand.win_probs[i];
-                let tenpai_prob = cand.tenpai_probs[i];
-                let exp_truth =
-                  cand_exp +
-                  (tenpai_prob - win_prob) * this.tempai_noten_plus_abs -
-                  (1 - tenpai_prob + win_prob) * this.noten_noten_minus_abs;
-                cand.exp_values[i] = exp_truth;
-              }
-            }
-            if (result_data.response.syanten < result.response.syanten) {
-              // 新しいやつが弱い場合
-              if (result.response.syanten >= 4) continue;
-              if (
-                result_data.response.syanten + 1 !==
-                result.response.syanten
-              ) {
-                continue;
-              }
-              for (let i = 0; i < result.response.candidates.length; i++) {
-                let cand = result.response.candidates[i];
-                if (cand.syanten_down) {
-                  result.response.candidates[i] = null;
-                } else {
-                  result.response.candidates[i].syanten_down = true;
-                }
-              }
-            } else if (result_data.response.syanten > result.response.syanten) {
-              if (result_data.response.syanten === 100) {
-                result_data.response = result.response;
-              } else {
-                // 新しいやつが強い場合はソートしているので無い
-                console.log("sort failed");
-              }
-              continue;
-            }
-            for (let cand of result.response.candidates) {
-              if (!cand) continue;
-              let found = false;
-              for (let i = 0; i < result_data.response.candidates.length; i++) {
-                let saved = result_data.response.candidates[i];
-                if (saved.tile !== cand.tile) continue;
-                found = true;
-                // 期待値が大きい方。
-                if (!saved.exp_values && cand.exp_values) {
-                  result_data.response.candidates[i] = cand;
-                  continue;
-                }
-                if (!cand.exp_values && saved.exp_values) {
-                  continue;
-                }
-                if (cand.exp_values && saved.exp_values) {
-                  let cand_exp = cand.exp_values[data.turn - 1];
-                  let saved_exp = saved.exp_values[data.turn - 1];
-                  if (cand_exp > saved_exp) {
-                    result_data.response.candidates[i] = cand;
-                  }
-                  continue;
-                }
-                // syanten_down: (...)
-                if (saved.syanten_down !== cand.syanten_down) {
-                  if (saved.syanten_down) {
-                    result_data.response.candidates[i] = cand;
-                    continue;
-                  }
-                }
-                // required_tiles: (...)
-                let cand_sum = 0;
-                let saved_sum = 0;
-                for (let t of saved.required_tiles) {
-                  saved_sum += t.count;
-                }
-                for (let t of cand.required_tiles) {
-                  cand_sum += t.count;
-                }
-                if (cand_sum >= saved_sum) {
-                  result_data.response.candidates[i] = cand;
-                }
-                break;
-              }
-              if (!found) {
-                result_data.response.candidates.push(cand);
-                continue;
-              }
-            }
-          }
+          let results = requestAll(
+            (json) => window["Module"].process_request(json),
+            data
+          );
+          let { result: result_data, agari } = mergeResults(
+            results,
+            data.turn,
+            this.tempai_noten_plus_abs,
+            this.noten_noten_minus_abs
+          );
+          if (agari) this.saveCurrentResult();
           this.ban.result = result_data;
           this.is_calculating = false;
         } else {
@@ -938,61 +767,10 @@ export default {
       }
       this.calculate();
       if (this.ban.pre_result && this.ban.pre_result.success) {
-        let found = false;
-        let no_cands = true;
-        let max_exp_value = -100000;
-        let max_tenpai_prob = 0;
-        let max_win_prob = 0;
-        let selected_exp_value = 0;
-        let selected_tenpai_prob = 0;
-        let selected_win_prob = 0;
-        let index = this.ban.turn - 2;
-        let impl = () => {
-          for (let cand of this.ban.pre_result.response.candidates) {
-            if (!cand.exp_values) return;
-            if (!cand.tenpai_probs) return;
-            if (!cand.win_probs) return;
-            no_cands = false;
-            let exp_value = cand.exp_values[index];
-            let tenpai_prob = cand.tenpai_probs[index];
-            let win_prob = cand.win_probs[index];
-            max_exp_value = Math.max(max_exp_value, exp_value);
-            max_tenpai_prob = Math.max(max_tenpai_prob, tenpai_prob);
-            max_win_prob = Math.max(max_win_prob, win_prob);
-            if (cand.tile === tile) {
-              selected_exp_value = exp_value;
-              selected_tenpai_prob = tenpai_prob;
-              selected_win_prob = win_prob;
-              found = true;
-            }
-          }
-        };
-        impl();
-        if (!found) {
-          tile = this.unwrap_aka(tile);
-          impl();
-        }
-        if (found) {
-          this.ban.agari_score_rate_rate = selected_win_prob / max_win_prob;
-          this.ban.tempai_score_rate_rate =
-            selected_tenpai_prob / max_tenpai_prob;
-          if (isNaN(this.ban.agari_score_rate_rate)) {
-            this.ban.agari_score_rate_rate = 1;
-          }
-          if (isNaN(this.ban.tempai_score_rate_rate)) {
-            this.ban.tempai_score_rate_rate = 1;
-          }
-          this.ban.expected_current_lost_score_abs =
-            max_exp_value - selected_exp_value;
-          if (isNaN(this.ban.expected_current_lost_score_abs)) {
-            this.ban.expected_current_lost_score_abs = 0;
-          }
-        } else {
-          let rate = no_cands ? 1 : 0;
-          this.ban.agari_score_rate_rate = rate;
-          this.ban.tempai_score_rate_rate = rate;
-          this.ban.expected_current_lost_score_abs = no_cands ? 0 : 2000;
-        }
+        let score = scoreDiscard(this.ban.pre_result, tile, this.ban.turn - 2);
+        this.ban.agari_score_rate_rate = score.agari_rate_rate;
+        this.ban.tempai_score_rate_rate = score.tempai_rate_rate;
+        this.ban.expected_current_lost_score_abs = score.lost;
         this.ban.agari_score_rate *= this.ban.agari_score_rate_rate;
         this.ban.tempai_score_rate *= this.ban.tempai_score_rate_rate;
         this.ban.expected_lost_score_abs += this.ban.expected_current_lost_score_abs;
@@ -1032,33 +810,7 @@ export default {
     },
     reset_hand() {
       this.clear_hand();
-      const shuffle = ([...array]) => {
-        let xorshift = new XorShift(this.seed);
-        for (let i = array.length - 1; i >= 0; i--) {
-          const j = Math.floor(xorshift.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
-      };
-
-      // 牌山を作成する。
-      yama = [];
-      let max_yama = 34;
-      for (let i = 0; i < max_yama; ++i) {
-        yama = yama.concat(Array(4).fill(i));
-      }
-      yama[Tile.Manzu5 * 4] = Tile.AkaManzu5;
-      yama[Tile.Pinzu5 * 4] = Tile.AkaPinzu5;
-      yama[Tile.Sozu5 * 4] = Tile.AkaSozu5;
-
-      // ドラ表示牌は削除する。
-      for (let tile of this.dora_indicators) {
-        let i = yama.indexOf(tile);
-        yama.splice(i, 1);
-      }
-
-      // 洗牌する。
-      yama = shuffle(yama);
+      yama = makeYama(this.seed, this.dora_indicators);
       this.next_seed = Math.floor(0x100000000 * Math.random());
       this.itte_modoshita = false;
 
@@ -1086,47 +838,434 @@ export default {
 };
 </script>
 
-<style>
-.custom-tooltip > .tooltip-inner {
-  max-width: 400px;
-  text-align: left;
-  padding-top: 5px;
-}
-.calc-overlay-wrap {
-  position: relative;
-}
-.calc-overlay {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translate(-50%, -50%);
-  text-align: center;
-  z-index: 10;
-}
-.social-button {
-  text-decoration: none;
-  font-weight: bold;
-  color: white;
-  border-radius: 3px;
-  margin-right: 10px;
-  width: 100px;
-  height: 25px;
-  text-align: center;
-  display: inline-block;
+<style scoped>
+.ako {
+  --tile-w: 28px;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
-.Facebook {
-  background-color: #2e4a88;
-  box-shadow: 0 4px 0 #1b3d82;
+/* ---- 上の帯: 名前と画面の切り替え ---- */
+.ako-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--line);
+}
+.ako-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+}
+.ako-mark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--accent);
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1;
+}
+.ako-name {
+  font-size: 1rem;
+  font-weight: 650;
+  letter-spacing: 0.03em;
+}
+/* 狭い画面では名前を隠して、印と切り替えを 1 段に（読み上げには残す） */
+@media (max-width: 699px) {
+  .ako-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+.ako-tabs {
+  display: flex;
+  flex: 1;
+  align-self: stretch;
+  margin-bottom: -1px;
+}
+.ako-tab {
+  flex: 1;
+  min-height: 48px;
+  padding: 0 4px;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ako-tab:hover {
+  color: var(--ink);
+}
+.ako-tab[aria-selected="true"] {
+  color: var(--ink);
+  font-weight: 600;
+  border-bottom-color: var(--accent);
+}
+@media (min-width: 700px) {
+  .ako-head {
+    gap: 16px;
+    padding: 0 16px;
+  }
+  .ako-tabs {
+    flex: 0 1 auto;
+    margin-left: auto;
+  }
+  .ako-tab {
+    flex: none;
+    min-height: 56px;
+    padding: 0 16px;
+  }
 }
 
-.Twitter {
-  background-color: #008dde;
-  box-shadow: 0 4px 0 #0078bd;
+/* ---- 中身 ---- */
+.ako-main {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 14px 16px 32px;
+}
+.board {
+  padding-bottom: 0;
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-.Line {
-  background-color: #22cc47;
-  box-shadow: 0 4px 0 #14ba5f;
+/* 結果（18巡目か和了で終わったとき） */
+.finish {
+  border-color: var(--accent);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.finish h2 {
+  color: var(--accent);
+}
+.finish-text {
+  margin-top: 4px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* 点数の盤: 場の情報とゲージ */
+.table-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  padding-bottom: 12px;
+  margin: 0 -16px 12px;
+  padding-inline: 16px;
+  border-bottom: 1px solid var(--line);
+}
+.table-info > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.table-info dt {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.table-info dd {
+  font-weight: 600;
+}
+.table-info .chip {
+  margin-left: auto;
+}
+.gauges-cap {
+  margin-bottom: 6px;
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+}
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.gauge-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+.gauge-label {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.gauge-value {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.gauge-sub {
+  margin-top: 5px;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: var(--ink-faint);
+}
+.gauge-sub .num {
+  color: var(--ink-soft);
+}
+@media (min-width: 700px) {
+  .gauges {
+    gap: 28px;
+  }
+  .gauge-row {
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .gauge-value {
+    font-size: 1.35rem;
+  }
+  .gauge-sub br {
+    display: none;
+  }
+  .gauge-sub .num {
+    margin-left: 4px;
+  }
+}
+
+.start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  font-size: 0.86rem;
+}
+
+/* 河: 6 枚ずつ折り返す（本物の卓と同じ） */
+.kawa {
+  display: grid;
+  grid-template-columns: repeat(6, var(--tile-w));
+  gap: 3px 2px;
+}
+
+.prev-move {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  --tile-w: 18px;
+}
+@media (min-width: 700px) {
+  .prev-move {
+    --tile-w: 22px;
+  }
+}
+.prev-discard {
+  --tile-w: 28px;
+  padding: 2px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.prev-arrow {
+  color: var(--ink-faint);
+}
+.prev-hand {
+  gap: 1px;
+}
+
+/* ---- 下の手牌の台（いつも見える） ---- */
+.dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  margin: 4px -16px 0;
+  padding: 6px 12px max(10px, env(safe-area-inset-bottom));
+  background: var(--bg-side);
+  border-top: 1px solid var(--line-strong);
+  --hand-max: 46px;
+}
+.dock-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 34px;
+  padding: 0 4px;
+}
+.dock-turn {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.dock-turn .num {
+  font-size: 1.15rem;
+  margin-right: 2px;
+}
+.dock-state {
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+}
+.dock-state.is-busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent);
+}
+.dock-state.is-busy::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: busy 0.9s ease-in-out infinite alternate;
+}
+@keyframes busy {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.dock-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: auto;
+}
+.dock[aria-busy="true"] :deep(.hand) {
+  opacity: 0.6;
+}
+@media (min-width: 700px) {
+  .dock {
+    margin-inline: 0;
+    padding-inline: 16px;
+    border: 1px solid var(--line-strong);
+    border-bottom: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+}
+
+/* ---- メニュー ---- */
+.kv {
+  display: grid;
+  gap: 12px;
+}
+.kv > div {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 12px;
+}
+.kv dt {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+/* 配牌は 14 枚を 1 列に（狭い画面では見出しの下に） */
+.kv > .kv-wide {
+  grid-template-columns: 1fr;
+}
+.haipai {
+  --tile-w: 22px;
+  gap: 1px;
+}
+@media (min-width: 700px) {
+  .kv > .kv-wide {
+    grid-template-columns: 7.5em minmax(0, 1fr);
+  }
+  .haipai {
+    --tile-w: 30px;
+  }
+}
+.kv-compact {
+  gap: 4px;
+  margin-top: 12px;
+}
+.kv-compact > div {
+  grid-template-columns: 11em auto;
+}
+.copy {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.range-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  font-size: 0.86rem;
+}
+.range-value {
+  font-size: 1.2rem;
+  color: var(--ink);
+}
+.range {
+  width: 100%;
+  max-width: 28rem;
+  height: 32px;
+  margin: 6px 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ---- ログ ---- */
+.logs {
+  display: grid;
+  gap: 8px;
+}
+.log {
+  display: grid;
+  gap: 8px;
+  --tile-w: 22px;
+}
+.log-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.log-lost {
+  margin-left: auto;
+  font-size: 1.05rem;
+}
+.log-tiles {
+  gap: 1px;
+}
+.log-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 -10px -6px;
+}
+@media (min-width: 700px) {
+  .logs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---- 遊び方 ---- */
+.howto ul {
+  display: grid;
+  gap: 6px;
+  max-width: 44em;
+  padding-left: 1.1em;
+  list-style: disc;
+}
+.howto li::marker {
+  color: var(--ink-faint);
 }
 </style>

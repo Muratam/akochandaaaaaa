@@ -1,115 +1,117 @@
 <template>
-  <div class="container-fluid p-0">
+  <div class="result">
     <!-- 成功時 -->
     <template v-if="result && result.success">
       <!-- 打牌一覧 -->
-      <div v-if="!showGraph && !is_show_graph" class="row mt-2">
-        <div class="col">
-          <table class="table b-table">
-            <thead>
-              <tr>
-                <th
-                  v-for="field in fields"
-                  :key="field.key"
-                  :style="field.thStyle"
-                  :class="{ sortable: field.sortable }"
-                  :aria-sort="ariaSort(field)"
+      <template v-if="!showGraph && !is_show_graph">
+        <!-- 狭い画面では表の見出しの代わりに、ここで並べ替える -->
+        <div v-if="sortableFields.length" class="sorter" role="group" aria-label="並べ替え">
+          <span class="sorter-label">並べ替え</span>
+          <button
+            v-for="field in sortableFields"
+            :key="field.key"
+            type="button"
+            class="sorter-btn"
+            :aria-pressed="localSortBy === field.key ? 'true' : 'false'"
+            @click="onHeaderClick(field)"
+          >
+            {{ field.label }}<span class="sort-icon" aria-hidden="true">{{ sortIcon(field) }}</span>
+          </button>
+        </div>
+        <table class="cands">
+          <thead>
+            <tr>
+              <th
+                v-for="field in fields"
+                :key="field.key"
+                scope="col"
+                :style="field.thStyle"
+                :class="['c-' + field.key, { sortable: field.sortable }]"
+                :aria-sort="ariaSort(field)"
+              >
+                <button
+                  v-if="field.sortable"
+                  type="button"
+                  class="th-btn"
                   @click="onHeaderClick(field)"
                 >
-                  {{ field.label }}
-                  <span v-if="field.sortable" class="sort-icon">{{
-                    sortIcon(field)
-                  }}</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="(item, rowIndex) in sortedItems" :key="rowIndex">
-                <td
-                  v-for="field in fields"
-                  :key="field.key"
-                  :class="cellClass(item, field)"
-                >
-                  <!-- 打牌 -->
-                  <template v-if="field.key === 'tile'">
-                    <TileImage :tile="item.tile" />
-                  </template>
-                  <!-- 受入 -->
-                  <template v-else-if="field.key === 'n_required_tiles'">
-                    {{ item.required_tiles.length }}種
-                    {{ item.n_required_tiles }}枚
-                    <br v-if="item.syanten_down" />
-                    {{ item.syanten_down ? "(+1向聴)" : "" }}
-                  </template>
-                  <!-- 有効牌 -->
-                  <template v-else-if="field.key === 'required_tiles'">
+                  {{ field.label }}<span class="sort-icon" aria-hidden="true">{{ sortIcon(field) }}</span>
+                </button>
+                <template v-else>{{ field.label }}</template>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="(item, rowIndex) in sortedItems"
+              :key="rowIndex"
+              :class="{ 'is-selected': !!cellClass(item, { key: 'tile' }) }"
+            >
+              <td
+                v-for="field in fields"
+                :key="field.key"
+                :class="'c-' + field.key"
+                :data-label="field.key === 'tile' || field.key === 'required_tiles' ? null : field.label"
+              >
+                <!-- 打牌 -->
+                <template v-if="field.key === 'tile'">
+                  <TileImage :tile="item.tile" />
+                </template>
+                <!-- 受入 -->
+                <template v-else-if="field.key === 'n_required_tiles'">
+                  <span class="num">{{ item.required_tiles.length }}種 {{ item.n_required_tiles }}枚</span>
+                  <span v-if="item.syanten_down" class="down">(+1向聴)</span>
+                </template>
+                <!-- 有効牌 -->
+                <template v-else-if="field.key === 'required_tiles'">
+                  <span class="tiles eff">
                     <TileImage
                       v-for="(tile, i) in item.required_tiles"
                       :key="i"
                       :tile="tile.tile"
                     />
-                  </template>
-                  <template v-else>
-                    {{
-                      field.formatter
-                        ? field.formatter(item[field.key])
-                        : item[field.key]
-                    }}
-                  </template>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </span>
+                </template>
+                <template v-else>
+                  <span class="num">{{
+                    field.formatter ? field.formatter(item[field.key]) : item[field.key]
+                  }}</span>
+                </template>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </template>
 
       <!-- グラフ -->
       <template v-if="showGraph">
         <div class="chart">
-          <div class="mb-3">
-            <div
-              id="input-line-type"
-              class="btn-group btn-group-sm"
-              role="group"
-            >
-              <template v-for="opt in line_options" :key="opt.value">
-                <input
-                  type="radio"
-                  class="btn-check"
-                  name="input-line-type"
-                  :id="'input-line-type-' + opt.value"
-                  :value="opt.value"
-                  v-model="line_type"
-                  autocomplete="off"
-                />
-                <label
-                  class="btn btn-outline-secondary"
-                  :for="'input-line-type-' + opt.value"
-                  >{{ opt.text }}</label
-                >
-              </template>
-            </div>
+          <div class="seg" role="radiogroup" aria-label="グラフの値">
+            <template v-for="opt in line_options" :key="opt.value">
+              <input
+                type="radio"
+                class="seg-input"
+                name="input-line-type"
+                :id="'input-line-type-' + opt.value"
+                :value="opt.value"
+                v-model="line_type"
+                autocomplete="off"
+              />
+              <label class="seg-btn" :for="'input-line-type-' + opt.value">{{ opt.text }}</label>
+            </template>
           </div>
-          <div class="row mt-2">
-            <div class="col">
-              <LineChart :chartData="lineData" :options="lineOptions" />
-            </div>
-          </div>
+          <LineChart :chartData="lineData" :options="lineOptions" />
         </div>
       </template>
-      <div v-else-if="is_show_graph" class="alert alert-danger" role="alert">
+      <p v-else-if="is_show_graph" class="alert" role="alert">
         向聴数が大きすぎてグラフを作成できませんでした
-      </div>
+      </p>
     </template>
 
     <!-- 失敗時 -->
-    <div
-      v-else-if="result && !result.success"
-      class="alert alert-danger"
-      role="alert"
-    >
+    <p v-else-if="result && !result.success" class="alert" role="alert">
       {{ result.err_msg }}
-    </div>
+    </p>
   </div>
 </template>
 
@@ -212,6 +214,9 @@ export default {
   },
 
   computed: {
+    sortableFields() {
+      return this.fields.filter((f) => f.sortable);
+    },
     sortedItems() {
       const key = this.localSortBy;
       if (!key) return this.items;
@@ -248,12 +253,14 @@ export default {
                 // カテゴリ軸 (1〜17巡目) のインデックス
                 value: req.turn - 1,
                 borderWidth: 2,
-                borderColor: "darkred",
+                borderColor: "#f0b445",
                 borderDash: [2, 2],
                 label: {
                   display: true,
                   position: "start",
                   content: "現在",
+                  backgroundColor: "#212d38",
+                  color: "#e3eaef",
                 },
               },
             },
@@ -318,21 +325,16 @@ export default {
       if (!this.result || !this.result.success)
         return { labels: [], datasets: [] };
 
+      // 暗い面（#141c23）で検証した 8 色を決まった順に使う。9 本目からは目立たない灰色
       let colors = [
-        "#e351d1",
-        "#00973d",
-        "#646df8",
-        "#f1bf4b",
-        "#104db2",
-        "#ef7310",
-        "#d199ff",
-        "#7f7400",
-        "#c50057",
-        "#86d7ab",
-        "#a11d28",
-        "#705685",
-        "#6c4d23",
-        "#ffadcc",
+        "#3987e5",
+        "#d95926",
+        "#199e70",
+        "#c98500",
+        "#d55181",
+        "#008300",
+        "#9085e9",
+        "#e66767",
       ];
 
       let res = this.result.response;
@@ -345,7 +347,10 @@ export default {
           data: candidate[this.line_type],
           fill: false,
           tension: 0,
-          borderColor: colors[i],
+          borderColor: colors[i] ?? "#627281",
+          backgroundColor: colors[i] ?? "#627281",
+          borderWidth: i < colors.length ? 2 : 1,
+          pointRadius: 2,
           // hidden: i >= 5,
         });
       }
@@ -598,22 +603,220 @@ export default {
 </script>
 
 <style scoped>
-.yukohai {
+.result {
+  --tile-w: 30px;
+}
+
+/* ---- 並べ替え（狭い画面だけ） ---- */
+.sorter {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
 }
-
-.chart {
-  max-width: 600px;
+.sorter-label {
+  font-size: 0.76rem;
+  color: var(--ink-faint);
+  margin-right: 2px;
 }
-
-th.sortable {
+.sorter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 34px;
+  padding: 0 10px;
+  background: none;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.8rem;
   cursor: pointer;
+}
+.sorter-btn[aria-pressed="true"] {
+  color: var(--ink);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.sort-icon {
+  font-size: 0.75em;
+  opacity: 0.6;
+  margin-left: 3px;
+}
+
+/* ---- 候補の表 ---- */
+.cands {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.cands th {
+  padding: 4px 8px 6px;
+  border-bottom: 1px solid var(--line-strong);
+  color: var(--ink-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
   white-space: nowrap;
 }
+.th-btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.th-btn:hover,
+th[aria-sort="ascending"] .th-btn,
+th[aria-sort="descending"] .th-btn {
+  color: var(--ink);
+}
+.cands td {
+  padding: 8px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
+}
+.cands tbody tr:hover {
+  background: var(--surface-2);
+}
+/* 選んだ打牌の行（ポータルのナビの「いまいる場所」と同じ印） */
+.cands tr.is-selected {
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+.c-tile {
+  width: 56px;
+}
+.down {
+  display: block;
+  font-size: 0.76rem;
+  color: var(--warn);
+}
+.eff {
+  --tile-w: 22px;
+  gap: 1px;
+}
 
-.sort-icon {
-  opacity: 0.5;
-  font-size: 0.8em;
+/* 狭い画面: 1 行を 3 段のカードにする（打牌｜数字 3 つ／受入／有効牌） */
+@media (max-width: 639px) {
+  .cands thead {
+    display: none;
+  }
+  .cands tbody,
+  .cands tr,
+  .cands td {
+    display: block;
+  }
+  .cands tr {
+    display: grid;
+    grid-template-columns: 40px repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "tile exp win ten"
+      "tile req req req"
+      "eff eff eff eff";
+    gap: 2px 8px;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--line);
+  }
+  .cands td {
+    padding: 0;
+    border: 0;
+  }
+  .cands td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.7rem;
+    line-height: 1.3;
+    color: var(--ink-faint);
+  }
+  .c-tile {
+    grid-area: tile;
+    width: auto;
+    --tile-w: 36px;
+  }
+  .c-exp_value {
+    grid-area: exp;
+  }
+  .c-win_prob {
+    grid-area: win;
+  }
+  .c-tenpai_prob {
+    grid-area: ten;
+  }
+  .c-n_required_tiles {
+    grid-area: req;
+    display: flex !important;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0 8px;
+  }
+  .cands td.c-n_required_tiles::before {
+    display: inline;
+  }
+  .down {
+    display: inline;
+  }
+  .c-required_tiles {
+    grid-area: eff;
+    margin-top: 4px;
+  }
+  .eff {
+    --tile-w: 20px;
+  }
+}
+@media (min-width: 640px) {
+  .sorter {
+    display: none;
+  }
+}
+
+/* ---- グラフ ---- */
+.chart {
+  max-width: 640px;
+}
+.seg {
+  display: inline-flex;
+  margin-bottom: 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.seg-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.seg-btn {
+  padding: 6px 14px;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.seg-btn + .seg-input + .seg-btn {
+  border-left: 1px solid var(--line-strong);
+}
+.seg-input:checked + .seg-btn {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+.seg-input:focus-visible + .seg-btn {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.alert {
+  padding: 10px 12px;
+  border: 1px solid var(--bad);
+  border-radius: var(--radius-sm);
+  background: var(--bad-soft);
+  color: var(--bad);
+  font-size: 0.88rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 </style>

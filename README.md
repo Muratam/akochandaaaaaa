@@ -14,7 +14,10 @@ npm ci
 npm run dev      # 開発用サーバー（http://localhost:5173/akochandaaaaa/）
 npm run build    # dist/ に出力（ベースパスは /akochandaaaaa/）
 npm run lint
+npm test         # 計算が前の版と同じか（wasm を Node で動かす。約 1.5 分）
 ```
+
+画面は sagisawa のポータルと同じ暗い版のトークン（`src/style.css`）。手牌は下の台にいつも出し、片手で打てるようにしてある。
 
 ## ラボで動かす（sagisawa）
 静的なファイルを nginx のコンテナ（`docker/nginx.conf`）で出す。compose のプロジェクト名は `akochandaaaaa`、ポートは 3130。
