@@ -27,7 +27,7 @@ ChartJS.register(
   annotationPlugin
 );
 
-// 暗い版（sagisawa のポータルと同じトークン）: 文字は --ink-soft、目盛り線は --grid
+// ダークテーマ（sagisawa のポータルと同じトークン）: 文字は --ink-soft、目盛り線は --grid
 ChartJS.defaults.color = "#8d9cab";
 ChartJS.defaults.borderColor = "#1d2832";
 ChartJS.defaults.font.family =

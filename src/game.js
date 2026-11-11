@@ -1,6 +1,6 @@
 // 一人麻雀の進め方: 牌山・不聴罰符・wasm の結果のまとめ・打牌の採点。
 // Calculator.vue から画面に関わらない計算だけを切り出したもの（中身は前の版のまま）。
-// test/game.test.js が、前の版を本物のブラウザで打った結果（test/golden.json）と突き合わせる。
+// test/game.test.js が、前の版を本物のブラウザで打った結果（test/golden.json）と照合する。
 import { Tile } from "./mahjong.js";
 
 export class XorShift {

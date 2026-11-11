@@ -8,4 +8,4 @@
 ## このアプリに特有のこと
 - 既定のブランチは **master**（main ではない）。PR の `--base` も master。
 - リポジトリ名は a が 6 つ（`akochandaaaaaa`）、URL のパスは a が 5 つ（`/akochandaaaaa/`）。パスは変えない（共有された盤面の URL `?q=<シード>` が生きている）。
-- 計算の中身（`public/main.*` の wasm、`src/mahjong.js`、`src/game.js`）と、入力の意味・結果は変えない。変えるときは先に murata に聞く（`npm test` が前の版を打った記録 `test/golden.json` と突き合わせるので、変えると落ちる）。
+- 計算の中身（`public/main.*` の wasm、`src/mahjong.js`、`src/game.js`）と、入力の意味・結果は変えない。変えるときは先に murata に聞く（`npm test` が前の版を打った記録 `test/golden.json` と照合するので、変えると落ちる）。

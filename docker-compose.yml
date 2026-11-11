@@ -4,7 +4,7 @@ services:
   app:
     build: .
     restart: unless-stopped
-    # 秘密は持たない。書けるのは /tmp（nginx の pid と一時ファイル）だけ
+    # シークレットは持たない。書けるのは /tmp（nginx の pid と一時ファイル）だけ
     read_only: true
     tmpfs:
       - /tmp
