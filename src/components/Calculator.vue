@@ -1164,7 +1164,7 @@ export default {
   padding: 8px 6px;
   --tile-w: 20px;
 }
-@media (min-width: 760px) and (min-height: 700px) {
+@media (min-width: 760px) and (min-height: 760px) {
   .prev-move {
     display: flex;
   }
