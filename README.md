@@ -17,7 +17,7 @@ npm run lint
 npm test         # 計算結果が前の版と同じかを確認する（wasm を Node で動かす。約 1.5 分）
 ```
 
-画面は sagisawa のポータルと同じダークテーマのトークン（`src/style.css`）。手牌は画面下部の台に常に表示し、片手で打てるようにしてある。
+画面は sagisawa のポータルと同じダークテーマのトークン（`src/style.css`）。手牌は画面上部の台に常に表示する（T148 で下から上へ移した）。
 
 ## ラボで動かす（sagisawa）
 静的なファイルを nginx のコンテナ（`docker/nginx.conf`）で配信する。compose のプロジェクト名は `akochandaaaaa`、ポートは 3130。
