@@ -1,6 +1,6 @@
-// 計算が前の版と同じかを確かめる。
+// 計算結果が前の版と同じかを確認する。
 // test/golden.json は、UI を作り直す前の版（Calculator.vue に計算があった版）を本物のブラウザで動かし、
-// 決まった手で 1 局ずつ打って、各巡の数字を記録したもの。同じ手を src/game.js と wasm で打ち、突き合わせる。
+// 固定の手で 1 局ずつ打って、各巡の数字を記録したもの。同じ手を src/game.js と wasm で打ち、照合する。
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
@@ -108,11 +108,11 @@ test("不聴罰符の期待値（他家の聴牌率 72 %。前の版のメニュ
   assert.equal(MINUS, "1942");
 });
 
-test("決まった手で打った各巡の結果が前の版と同じ", { timeout: 600000 }, async () => {
+test("固定の手で打った各巡の結果が前の版と同じ", { timeout: 600000 }, async () => {
   const pr = await loadProcessRequest();
   for (const [seed, want] of Object.entries(golden)) {
     const got = play(pr, Number(seed));
-    // shanten_text は画面の文言なので比べない
+    // shanten_text は画面の文言なので比較しない
     const strip = (rows) => rows.map((r) => ({ ...r, shanten_text: undefined }));
     assert.deepEqual(strip(got), strip(want), `seed ${seed}`);
   }

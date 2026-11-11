@@ -102,7 +102,7 @@
               <h2>河</h2>
               <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
             </div>
-            <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）へ送る -->
+            <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
             <div ref="kawa" class="kawa">
               <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
             </div>
@@ -129,7 +129,7 @@
 
           <div v-if="ban.turn <= 1 && !is_finished" class="panel start">
             <p class="quiet">
-              下の手牌から、捨てる牌を押す。押すたびに最善の打牌と比べて採点し、ここに候補を並べる。
+              下の手牌から、捨てる牌を押す。押すたびに最善の打牌と比較して採点し、ここに候補を並べる。
             </p>
             <button type="button" class="btn" @click="set_random_hand">
               別の盤面で遊ぶ！
@@ -137,7 +137,7 @@
           </div>
 
           <div v-if="ban.turn > 1" class="panel panel-tight prev">
-            <!-- 自分の打牌と最善の打牌の差の 1 行と、候補の表（いつも出す。表はこの欄の中だけで送る） -->
+            <!-- 自分の打牌と最善の打牌の差の 1 行と、候補の表（常に表示する。表はこの欄の中だけでスクロールする） -->
             <div class="prev-line">
               <h2 class="prev-title">
                 前の一手<span class="prev-turn">{{ ban.turn - 1 }}巡目</span>
@@ -276,7 +276,7 @@
       role="tabpanel"
       aria-labelledby="tab-2"
     >
-      <p class="quiet">直近の結果を 100 件まで、このブラウザに残す。</p>
+      <p class="quiet">直近の結果を 100 件まで、このブラウザに保存する。</p>
       <p v-if="banResultLogs.length === 0" class="panel quiet">
         まだ記録がない。18巡目まで打つか和了ると、ここに残る。
       </p>
@@ -678,7 +678,7 @@ export default {
           this.copy_status = "コピーした。この URL を開くと、誰でも同じ盤面で遊べる。";
         },
         () => {
-          this.copy_status = `コピーできなかった。${url} を手で写す。`;
+          this.copy_status = `コピーできなかった。${url} を手動でコピーしてください。`;
         }
       );
     },
@@ -783,7 +783,7 @@ export default {
       sort_tiles(this.ban.hand_tiles);
     },
 
-    /// 牌を手牌から次のにする
+    /// 手牌から牌を捨て、次の牌をツモる
     next_tile(tile) {
       if (this.is_calculating) return;
       if (this.ban.turn >= 18 || this.is_agari) {
@@ -876,7 +876,7 @@ export default {
         if (this.$refs.cands) this.$refs.cands.scrollTop = 0;
       });
     },
-    // 河が上限の高さを超えたら、枠の中で最新の牌が見える位置へ送る
+    // 河が上限の高さを超えたら、枠の中で最新の牌が見える位置までスクロールする
     "ban.kawa_indicators.length"() {
       this.$nextTick(() => {
         const kawa = this.$refs.kawa;
@@ -900,7 +900,7 @@ export default {
 <style scoped>
 /*
  * 画面の高さにちょうど収める（ページ全体はスクロールしない）。ポータルの iframe の中では 100dvh が枠の高さになる。
- * 上の帯・中身・下の手牌の台を縦に並べ、伸びる中身は中身の枠の中だけで送る。手牌の台はいつも同じ位置。
+ * 上の帯・中身・下の手牌の台を縦に並べ、伸びる中身は中身の枠の中だけでスクロールする。手牌の台はいつも同じ位置。
  */
 .ako {
   --tile-w: 28px;
@@ -1004,7 +1004,7 @@ export default {
 }
 
 /* ---- 中身 ---- */
-/* 中身の枠: 幅は --col の列（送りのつまみは画面の端に出るよう、余白で列を作る） */
+/* 中身の枠: 幅は --col の列（スクロールバーは画面の端に出るよう、余白で列を作る） */
 .ako-main {
   flex: 1;
   min-height: 0;
@@ -1016,7 +1016,7 @@ export default {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-/* 盤面: 中身（送る）と手牌の台（動かない）の 2 段 */
+/* 盤面: 中身（スクロールする）と手牌の台（動かない）の 2 段 */
 .board {
   gap: 0;
   padding: 0;
@@ -1031,7 +1031,7 @@ export default {
   grid-template-rows: auto minmax(180px, 1fr);
   gap: 10px;
   padding: 10px max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)));
-  /* 収まらないときだけの逃げ道（決めた画面の大きさでは送らずに収まる） */
+  /* 収まらないときだけの逃げ道（想定した画面の大きさではスクロールせずに収まる） */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -1200,7 +1200,7 @@ export default {
   font-size: 0.86rem;
 }
 
-/* 河: 見出しを左に置き、牌は横に並べて折り返す。高さは 2 段まで（超えたら枠の中で送る） */
+/* 河: 見出しを左に置き、牌は横に並べて折り返す。高さは 2 段まで（超えたら枠の中でスクロールする） */
 .kawa-panel {
   display: flex;
   align-items: flex-start;
@@ -1229,7 +1229,7 @@ export default {
   }
 }
 
-/* 前の一手: 自分と最善の打牌・差の 1 行と、候補の表。欄は右の列（狭い画面では残りの高さ）いっぱいで、表だけ中で送る */
+/* 前の一手: 自分と最善の打牌・差の 1 行と、候補の表。欄は右の列（狭い画面では残りの高さ）いっぱいで、表だけ中でスクロールする */
 .prev {
   flex: 1;
   min-height: 0;
@@ -1290,7 +1290,7 @@ export default {
 .prev-diff.is-bad {
   color: var(--bad);
 }
-/* 候補の表の送り枠（見出しの行は上に留まる） */
+/* 候補の表のスクロール枠（見出しの行は上に留まる） */
 .prev-detail {
   flex: 1;
   min-height: 0;

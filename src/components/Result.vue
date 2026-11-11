@@ -587,7 +587,7 @@ export default {
   --tile-w: 30px;
 }
 
-/* ---- 候補の表: 1 候補 1 行。見出しは送り枠の上に留める ---- */
+/* ---- 候補の表: 1 候補 1 行。見出しはスクロール枠の上に固定する ---- */
 .cands {
   width: 100%;
   border-collapse: collapse;
