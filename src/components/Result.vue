@@ -671,7 +671,16 @@ th[aria-sort="descending"] .th-btn {
     --tile-w: 14px;
   }
 }
-/* 縦の短い画面（スマホの横）: 行を詰めて、見える候補を増やす */
+@container (min-width: 560px) {
+  .c-tile {
+    --tile-w: 24px;
+  }
+  .eff {
+    --tile-w: 18px;
+  }
+}
+/* 縦の短い画面（スマホの横）: 行を詰めて、見える候補を増やす。
+   欄が広くても牌は小さいままにする（上の幅の指定を上書きするので、その後ろに置く） */
 @media (max-height: 500px) {
   .cands td {
     padding-block: 1px;
@@ -679,16 +688,11 @@ th[aria-sort="descending"] .th-btn {
   .c-tile {
     --tile-w: 18px;
   }
+  .eff {
+    --tile-w: 14px;
+  }
   .th-btn {
     min-height: 24px;
-  }
-}
-@container (min-width: 560px) {
-  .c-tile {
-    --tile-w: 24px;
-  }
-  .eff {
-    --tile-w: 18px;
   }
 }
 

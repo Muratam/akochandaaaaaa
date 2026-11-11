@@ -30,34 +30,8 @@
       role="tabpanel"
       aria-labelledby="tab-0"
     >
-      <!-- ページ全体はスクロールしない。広い画面: 左に場・河、右に前の一手の候補。狭い画面: 縦に並べ、残りの高さを候補に -->
+      <!-- ページ全体はスクロールしない。下の台より上の高さは全部、前の一手の候補に充てる（場・自風・河は下の台に置く） -->
       <div ref="body" class="board-body">
-        <div class="board-side">
-          <!-- 場と河（ドラ表示と最善に対するゲージは、手牌を見ながら使うので下の手牌の台に置く） -->
-          <div class="panel panel-tight side-panel">
-            <dl class="table-info">
-              <div>
-                <dt>場</dt>
-                <dd>{{ tile2String(bakaze) }}場</dd>
-              </div>
-              <div>
-                <dt>自風</dt>
-                <dd>{{ tile2String(zikaze) }}家</dd>
-              </div>
-            </dl>
-            <div v-if="ban.kawa_indicators.length > 0" class="kawa-row">
-              <div class="kawa-head">
-                <h2>河</h2>
-                <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
-              </div>
-              <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
-              <div ref="kawa" class="kawa">
-                <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
-              </div>
-            </div>
-          </div>
-        </div>
-
         <div class="board-cands">
           <div v-if="is_finished" class="panel finish">
             <p class="finish-text"><span class="finish-label">結果</span>{{ state_info_without_config }}</p>
@@ -124,8 +98,16 @@
 
       <!-- 手牌は親指の届く下に置く -->
       <div class="dock" :aria-busy="is_calculating ? 'true' : 'false'">
-        <!-- 手牌のすぐ上: 巡目・ドラ表示・最善に対するゲージ（手牌を見ながら使う情報を手牌の近くに）。
-             広い画面では 1 行、狭い画面では「巡目・ドラ表示・ボタン」と「ゲージ」の 2 段 -->
+        <!-- 手牌の上の段のさらに上: 河（1 段分の高さを最初から確保し、局の途中で台の高さが変わりにくいように） -->
+        <div class="dock-kawa">
+          <span class="dock-label">河<span class="num">{{ ban.kawa_indicators.length }}</span>枚</span>
+          <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
+          <div ref="kawa" class="kawa">
+            <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
+          </div>
+        </div>
+        <!-- 手牌のすぐ上: 巡目・ドラ表示・場と自風・最善に対するゲージ（手牌を見ながら使う情報を手牌の近くに）。
+             広い画面では 1 行、狭い画面では「巡目・ドラ表示・場と自風・ボタン」と「ゲージ」の 2 段 -->
         <div class="dock-head">
           <div class="dock-bar">
             <span class="dock-turn">
@@ -140,6 +122,7 @@
                 <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
               </span>
             </span>
+            <span class="dock-wind">{{ tile2String(bakaze) }}場 {{ tile2String(zikaze) }}家</span>
             <span class="dock-actions">
               <button
                 v-if="pre_ban && ban.turn < 18 && !is_agari"
@@ -1037,36 +1020,19 @@ export default {
   flex: 1;
   min-height: 0;
   display: grid;
-  /* 狭い画面: 上に場・ゲージ・河、残りの高さを全部候補に */
-  grid-template-rows: auto minmax(180px, 1fr);
+  /* 下の台より上の高さを全部候補に */
+  grid-template-rows: minmax(0, 1fr);
   gap: 10px;
   padding: 10px max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)));
   /* 収まらないときだけの逃げ道（想定した画面の大きさではスクロールせずに収まる） */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.board-side {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  min-width: 0;
-}
-.board-side > * {
-  flex: none;
-}
 .board-cands {
   display: flex;
   flex-direction: column;
   min-width: 0;
   min-height: 0;
-}
-/* 広い画面（スマホの横・PC）: 左の列に場・河、右の列の高さいっぱいに候補 */
-@media (min-width: 760px) {
-  .board-body {
-    grid-template-rows: minmax(0, 1fr);
-    grid-template-columns: minmax(300px, 5fr) minmax(0, 6fr);
-    gap: 12px;
-  }
 }
 @media (min-width: 1200px) {
   .ako {
@@ -1110,34 +1076,6 @@ export default {
 .finish .actions {
   margin: 0 0 0 auto;
 }
-/* 場の情報（場・自風）。河と同じ欄の上の段 */
-.table-info {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 18px;
-  margin: 0 -14px;
-  padding: 0 14px 6px;
-  line-height: 1.4;
-}
-.kawa-row {
-  margin: 0 -14px;
-  padding: 8px 14px 0;
-  border-top: 1px solid var(--line);
-}
-.table-info > div {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.table-info dt {
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-}
-.table-info dd {
-  font-weight: 600;
-}
-
 .start {
   display: flex;
   flex-wrap: wrap;
@@ -1145,35 +1083,6 @@ export default {
   justify-content: space-between;
   gap: 8px 16px;
   font-size: 0.86rem;
-}
-
-/* 河: 見出しを左に置き、牌は横に並べて折り返す。高さは 2 段まで（超えたら枠の中でスクロールする） */
-.kawa-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-.kawa-head {
-  display: flex;
-  flex-direction: column;
-  flex: none;
-  line-height: 1.3;
-}
-.kawa {
-  --tile-w: 22px;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 3px 2px;
-  max-height: calc(var(--tile-w) * 90 / 66 * 2 + 3px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-}
-@media (min-width: 1200px) and (min-height: 760px) {
-  .kawa {
-    --tile-w: 26px;
-  }
 }
 
 /* 前の一手: 自分と最善の打牌・差の 1 行と、候補の表。欄は右の列（狭い画面では残りの高さ）いっぱいで、表だけ中でスクロールする */
@@ -1308,6 +1217,48 @@ export default {
   line-height: 1.2;
   color: var(--ink-soft);
   white-space: nowrap;
+}
+/* 場と自風（ドラ表示の隣） */
+.dock-wind {
+  font-size: 0.86rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+/* 河: 手牌の上の段のさらに上。見出しを左に、牌は横に並べて折り返す。
+   1 段分の高さを最初から確保し、2 段を超えたら枠の中で最新（下）までスクロールする */
+.dock-kawa {
+  --kawa-w: 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 0 4px 4px;
+}
+.dock-kawa .dock-label {
+  flex: none;
+  width: 3.4em;
+  line-height: calc(var(--kawa-w) * 90 / 66);
+}
+.dock-kawa .num {
+  margin-left: 2px;
+}
+.kawa {
+  --tile-w: var(--kawa-w);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  min-height: calc(var(--tile-w) * 90 / 66);
+  max-height: calc(var(--tile-w) * 90 / 66 * 2 + 2px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+/* 広い画面: 24 枚でも 1 段に収まるので、牌を小さくして段を低くする（その分を候補の欄に） */
+@media (min-width: 760px) {
+  .dock-kawa {
+    --kawa-w: 16px;
+    padding-bottom: 2px;
+  }
 }
 /* 最善に対するゲージ: 見出しの小さな列と、3 つのゲージ */
 .dock-stats {
@@ -1444,7 +1395,8 @@ export default {
   .dock-turn {
     order: 1;
   }
-  .dock-dora {
+  .dock-dora,
+  .dock-wind {
     order: 2;
   }
   .dock-stats {
@@ -1617,12 +1569,9 @@ export default {
     padding-block: 8px;
     gap: 8px;
   }
-  .board-side {
-    gap: 8px;
-  }
   .dock {
     --hand-max: 40px;
-    padding-top: 2px;
+    padding-top: 0;
     padding-bottom: max(6px, env(safe-area-inset-bottom));
   }
   .dock-bar {
@@ -1639,14 +1588,6 @@ export default {
   .finish {
     margin-bottom: 8px;
   }
-  .table-info {
-    margin-inline: -12px;
-    padding: 0 12px 4px;
-  }
-  .kawa-row {
-    margin-inline: -12px;
-    padding: 6px 12px 0;
-  }
   .dock-head {
     min-height: 30px;
     padding-bottom: 0;
@@ -1658,8 +1599,9 @@ export default {
     min-height: 26px;
     padding-block: 1px;
   }
-  .kawa {
-    --tile-w: 18px;
+  .dock-kawa {
+    --kawa-w: 16px;
+    padding-bottom: 0;
   }
   .prev-line {
     min-height: 28px;
