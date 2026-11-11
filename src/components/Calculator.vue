@@ -30,83 +30,18 @@
       role="tabpanel"
       aria-labelledby="tab-0"
     >
-      <!-- ページ全体はスクロールしない。下の台より上の高さは全部、前の一手の候補に充てる（場・自風・河は下の台に置く） -->
-      <div ref="body" class="board-body">
-        <div class="board-cands">
-          <div v-if="is_finished" class="panel finish">
-            <p class="finish-text"><span class="finish-label">結果</span>{{ state_info_without_config }}</p>
-            <div class="actions">
-              <button type="button" class="btn btn-primary btn-small" @click="set_random_hand">
-                次の盤面へ
-              </button>
-              <TwitterShare
-                :url="state_url"
-                hashtags="牌効率チェッカー"
-                :title="state_info"
-                class="btn"
-              >
-                つぶやく
-              </TwitterShare>
-            </div>
-          </div>
-
-          <div v-if="ban.turn <= 1 && !is_finished" class="panel start">
-            <p class="quiet">
-              下の手牌から、捨てる牌を押す。押すたびに最善の打牌と比較して採点し、ここに候補を並べる。
-            </p>
-            <button type="button" class="btn" @click="set_random_hand">
-              別の盤面で遊ぶ！
-            </button>
-          </div>
-
-          <div v-if="ban.turn > 1" class="panel panel-tight prev">
-            <!-- 自分の打牌と最善の打牌の差の 1 行と、候補の表（常に表示する。表はこの欄の中だけでスクロールする） -->
-            <div class="prev-line">
-              <h2 class="prev-title">
-                前の一手<span class="prev-turn">{{ ban.turn - 1 }}巡目</span>
-              </h2>
-              <span class="prev-pair">
-                <span class="prev-who">自分</span>
-                <span class="prev-tile is-mine"><TileImage :tile="last_discard" /></span>
-                <template v-if="prev_summary && !prev_summary.same">
-                  <span class="prev-who">最善</span>
-                  <span class="prev-tile"><TileImage :tile="prev_summary.best_tile" /></span>
-                </template>
-              </span>
-              <span :class="['prev-diff', 'num', prev_diff_class]">{{ prev_diff_text }}</span>
-            </div>
-            <div ref="cands" class="prev-detail">
-              <div class="prev-move">
-                <span class="prev-discard">
-                  <TileImage :tile="last_discard" />
-                </span>
-                <span class="prev-arrow" aria-hidden="true">←</span>
-                <span class="tiles prev-hand">
-                  <TileImage v-for="(tile, i) in ban.pre_hand_tiles" :key="i" :tile="tile" />
-                </span>
-              </div>
-              <Result
-                :result="ban.pre_result"
-                :is_show_graph="false"
-                :hand_tiles="ban.pre_hand_tiles"
-                :selected_tile="last_discard"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 手牌は親指の届く下に置く -->
+      <!-- 手牌のまとまりは上の帯のすぐ下に置き、その下を候補に充てる（視線を上の 1 か所にまとめる）。
+           並びは下に置いていたときの鏡写し: 手牌 → 巡目・ドラ表示・ゲージ → 河。伸びる河をいちばん下にして、手牌の位置を動かさない -->
       <div class="dock" :aria-busy="is_calculating ? 'true' : 'false'">
-        <!-- 手牌の上の段のさらに上: 河（1 段分の高さを最初から確保し、局の途中で台の高さが変わりにくいように） -->
-        <div class="dock-kawa">
-          <span class="dock-label">河<span class="num">{{ ban.kawa_indicators.length }}</span>枚</span>
-          <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
-          <div ref="kawa" class="kawa">
-            <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
-          </div>
-        </div>
-        <!-- 手牌のすぐ上: 巡目・ドラ表示・場と自風・最善に対するゲージ（手牌を見ながら使う情報を手牌の近くに）。
+        <HandAndMeldedBlocks
+          @remove-tile="next_tile"
+          :tsumo="ban.tsumo_indicators[ban.tsumo_indicators.length - 1]"
+          :hand_tiles="ban.hand_tiles"
+          :melded_blocks="melded_blocks"
+          :disabled="is_calculating || is_finished"
+          size="lg"
+        />
+        <!-- 手牌のすぐ下: 巡目・ドラ表示・場と自風・最善に対するゲージ（手牌を見ながら使う情報を手牌の近くに）。
              広い画面では 1 行、狭い画面では「巡目・ドラ表示・場と自風・ボタン」と「ゲージ」の 2 段 -->
         <div class="dock-head">
           <div class="dock-bar">
@@ -186,14 +121,80 @@
             </ul>
           </div>
         </div>
-        <HandAndMeldedBlocks
-          @remove-tile="next_tile"
-          :tsumo="ban.tsumo_indicators[ban.tsumo_indicators.length - 1]"
-          :hand_tiles="ban.hand_tiles"
-          :melded_blocks="melded_blocks"
-          :disabled="is_calculating || is_finished"
-          size="lg"
-        />
+        <!-- 巡目の段のさらに下: 河（1 段分の高さを最初から確保し、2 段目は下へ伸びる。手牌の位置は動かない） -->
+        <div class="dock-kawa">
+          <span class="dock-label">河<span class="num">{{ ban.kawa_indicators.length }}</span>枚</span>
+          <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
+          <div ref="kawa" class="kawa">
+            <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
+          </div>
+        </div>
+      </div>
+
+      <!-- ページ全体はスクロールしない。上の台より下の高さは全部、前の一手の候補に充てる（場・自風・河は上の台に置く） -->
+      <div ref="body" class="board-body">
+        <div class="board-cands">
+          <div v-if="is_finished" class="panel finish">
+            <p class="finish-text"><span class="finish-label">結果</span>{{ state_info_without_config }}</p>
+            <div class="actions">
+              <button type="button" class="btn btn-primary btn-small" @click="set_random_hand">
+                次の盤面へ
+              </button>
+              <TwitterShare
+                :url="state_url"
+                hashtags="牌効率チェッカー"
+                :title="state_info"
+                class="btn"
+              >
+                つぶやく
+              </TwitterShare>
+            </div>
+          </div>
+
+          <div v-if="ban.turn <= 1 && !is_finished" class="panel start">
+            <p class="quiet">
+              上の手牌から、捨てる牌を押す。押すたびに最善の打牌と比較して採点し、ここに候補を並べる。
+            </p>
+            <button type="button" class="btn" @click="set_random_hand">
+              別の盤面で遊ぶ！
+            </button>
+          </div>
+
+          <div v-if="ban.turn > 1" class="panel panel-tight prev">
+            <!-- 自分の打牌と最善の打牌の差の 1 行と、候補の表（常に表示する。表はこの欄の中だけでスクロールする） -->
+            <div class="prev-line">
+              <h2 class="prev-title">
+                前の一手<span class="prev-turn">{{ ban.turn - 1 }}巡目</span>
+              </h2>
+              <span class="prev-pair">
+                <span class="prev-who">自分</span>
+                <span class="prev-tile is-mine"><TileImage :tile="last_discard" /></span>
+                <template v-if="prev_summary && !prev_summary.same">
+                  <span class="prev-who">最善</span>
+                  <span class="prev-tile"><TileImage :tile="prev_summary.best_tile" /></span>
+                </template>
+              </span>
+              <span :class="['prev-diff', 'num', prev_diff_class]">{{ prev_diff_text }}</span>
+            </div>
+            <div ref="cands" class="prev-detail">
+              <div class="prev-move">
+                <span class="prev-discard">
+                  <TileImage :tile="last_discard" />
+                </span>
+                <span class="prev-arrow" aria-hidden="true">←</span>
+                <span class="tiles prev-hand">
+                  <TileImage v-for="(tile, i) in ban.pre_hand_tiles" :key="i" :tile="tile" />
+                </span>
+              </div>
+              <Result
+                :result="ban.pre_result"
+                :is_show_graph="false"
+                :hand_tiles="ban.pre_hand_tiles"
+                :selected_tile="last_discard"
+              />
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -893,7 +894,7 @@ export default {
 <style scoped>
 /*
  * 画面の高さにちょうど収める（ページ全体はスクロールしない）。ポータルの iframe の中では 100dvh が枠の高さになる。
- * 上の帯・中身・下の手牌の台を縦に並べ、伸びる中身は中身の枠の中だけでスクロールする。手牌の台はいつも同じ位置。
+ * 上の帯・手牌の台・中身を縦に並べ、伸びる中身は中身の枠の中だけでスクロールする。手牌の台はいつも同じ位置。
  */
 .ako {
   --tile-w: 28px;
@@ -1009,7 +1010,7 @@ export default {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-/* 盤面: 中身（スクロールする）と手牌の台（動かない）の 2 段 */
+/* 盤面: 手牌の台（動かない）と中身（スクロールする）の 2 段 */
 .board {
   gap: 0;
   padding: 0;
@@ -1020,10 +1021,11 @@ export default {
   flex: 1;
   min-height: 0;
   display: grid;
-  /* 下の台より上の高さを全部候補に */
+  /* 上の台より下の高さを全部候補に */
   grid-template-rows: minmax(0, 1fr);
   gap: 10px;
-  padding: 10px max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)));
+  padding: 10px max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)))
+    max(10px, env(safe-area-inset-bottom));
   /* 収まらないときだけの逃げ道（想定した画面の大きさではスクロールせずに収まる） */
   overflow-y: auto;
   overscroll-behavior: contain;
@@ -1188,14 +1190,14 @@ export default {
   gap: 1px;
 }
 
-/* ---- 下の手牌の台（いつも見える。中身の枠の外なので、中身が伸びても動かない） ---- */
+/* ---- 上の手牌の台（いつも見える。中身の枠の外なので、中身が伸びても動かない） ---- */
 .dock {
   flex: none;
   z-index: 5;
   width: 100%;
-  padding: 6px 12px max(10px, env(safe-area-inset-bottom));
+  padding: 8px 12px 4px;
   background: var(--bg-side);
-  border-top: 1px solid var(--line-strong);
+  border-bottom: 1px solid var(--line-strong);
   --hand-max: 46px;
 }
 .dock-bar {
@@ -1203,6 +1205,7 @@ export default {
   align-items: center;
   gap: 4px 14px;
   min-height: 34px;
+  margin-top: 4px;
   padding: 0 4px;
 }
 /* ドラ表示（手牌の判断に使うので、手牌の近くに） */
@@ -1224,8 +1227,8 @@ export default {
   font-weight: 600;
   white-space: nowrap;
 }
-/* 河: 手牌の上の段のさらに上。見出しを左に、牌は横に並べて折り返す。
-   1 段分の高さを最初から確保し、2 段を超えたら枠の中で最新（下）までスクロールする */
+/* 河: 手牌の下の段のさらに下（台のいちばん下）。見出しを左に、牌は横に並べて折り返す。
+   1 段分の高さを最初から確保し、2 段目は下へ伸びる（手牌は動かない）。2 段を超えたら枠の中で最新（下）までスクロールする */
 .dock-kawa {
   --kawa-w: 18px;
   display: flex;
@@ -1257,7 +1260,7 @@ export default {
 @media (min-width: 760px) {
   .dock-kawa {
     --kawa-w: 16px;
-    padding-bottom: 2px;
+    padding-bottom: 6px;
   }
 }
 /* 最善に対するゲージ: 見出しの小さな列と、3 つのゲージ */
@@ -1375,11 +1378,11 @@ export default {
     margin: 0 auto;
     padding-inline: 16px;
     border: 1px solid var(--line-strong);
-    border-bottom: 0;
-    border-radius: var(--radius) var(--radius) 0 0;
+    border-top: 0;
+    border-radius: 0 0 var(--radius) var(--radius);
   }
 }
-/* 広い画面: 手牌の上の段を 1 行に（巡目・ドラ表示 | 最善に対するゲージ | ボタン）。
+/* 広い画面: 手牌の下の段を 1 行に（巡目・ドラ表示 | 最善に対するゲージ | ボタン）。
    候補の欄の高さを減らさないよう、前の巡目の行と同じくらいの高さに収める */
 @media (min-width: 760px) {
   .dock-head {
@@ -1387,6 +1390,7 @@ export default {
     align-items: center;
     gap: 14px;
     min-height: 34px;
+    margin-top: 4px;
     padding: 0 4px 2px;
   }
   .dock-bar {
@@ -1571,8 +1575,8 @@ export default {
   }
   .dock {
     --hand-max: 40px;
-    padding-top: 0;
-    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-top: 6px;
+    padding-bottom: 0;
   }
   .dock-bar {
     min-height: 30px;
@@ -1590,6 +1594,7 @@ export default {
   }
   .dock-head {
     min-height: 30px;
+    margin-top: 2px;
     padding-bottom: 0;
   }
   .dock-dora {
@@ -1601,7 +1606,7 @@ export default {
   }
   .dock-kawa {
     --kawa-w: 16px;
-    padding-bottom: 0;
+    padding-bottom: 4px;
   }
   .prev-line {
     min-height: 28px;
