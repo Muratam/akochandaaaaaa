@@ -30,17 +30,12 @@
       role="tabpanel"
       aria-labelledby="tab-0"
     >
-      <!-- ページ全体はスクロールしない。広い画面: 左に場・ゲージ・河、右に前の一手の候補。狭い画面: 縦に並べ、残りの高さを候補に -->
+      <!-- ページ全体はスクロールしない。広い画面: 左に場・河、右に前の一手の候補。狭い画面: 縦に並べ、残りの高さを候補に -->
       <div ref="body" class="board-body">
         <div class="board-side">
-          <div class="panel score">
+          <!-- 場と河（ドラ表示と最善に対するゲージは、手牌を見ながら使うので下の手牌の台に置く） -->
+          <div class="panel panel-tight side-panel">
             <dl class="table-info">
-              <div>
-                <dt>ドラ表示</dt>
-                <dd class="tiles">
-                  <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
-                </dd>
-              </div>
               <div>
                 <dt>場</dt>
                 <dd>{{ tile2String(bakaze) }}場</dd>
@@ -49,62 +44,16 @@
                 <dt>自風</dt>
                 <dd>{{ tile2String(zikaze) }}家</dd>
               </div>
-              <span v-if="itte_modoshita" class="chip">一手戻した</span>
             </dl>
-            <p class="gauges-cap">最善に対する</p>
-            <ul class="gauges">
-              <li>
-                <div class="gauge-row">
-                  <span class="gauge-label">期待値損失</span>
-                  <span class="gauge-value num">-{{ ban.expected_lost_score_abs.toFixed(0) }}点</span>
-                </div>
-                <div :class="['meter', { 'is-muted': itte_modoshita }]">
-                  <i
-                    :style="{
-                      width:
-                        (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 + '%',
-                    }"
-                  ></i>
-                </div>
-                <p class="gauge-sub">
-                  この一手 <span class="num">-{{ ban.expected_current_lost_score_abs.toFixed(0) }}点</span>
-                </p>
-              </li>
-              <li>
-                <div class="gauge-row">
-                  <span class="gauge-label">和了率</span>
-                  <span class="gauge-value num">{{ (ban.agari_score_rate * 100).toFixed(0) }}%</span>
-                </div>
-                <div :class="['meter', { 'is-muted': itte_modoshita }]">
-                  <i :style="{ width: ban.agari_score_rate * 100 + '%' }"></i>
-                </div>
-                <p class="gauge-sub">
-                  この一手 <span class="num">x{{ ban.agari_score_rate_rate.toFixed(2) }}</span>
-                </p>
-              </li>
-              <li>
-                <div class="gauge-row">
-                  <span class="gauge-label">聴牌率</span>
-                  <span class="gauge-value num">{{ (ban.tempai_score_rate * 100).toFixed(0) }}%</span>
-                </div>
-                <div :class="['meter', { 'is-muted': itte_modoshita }]">
-                  <i :style="{ width: ban.tempai_score_rate * 100 + '%' }"></i>
-                </div>
-                <p class="gauge-sub">
-                  この一手 <span class="num">x{{ ban.tempai_score_rate_rate.toFixed(2) }}</span>
-                </p>
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="ban.kawa_indicators.length > 0" class="panel panel-tight kawa-panel">
-            <div class="kawa-head">
-              <h2>河</h2>
-              <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
-            </div>
-            <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
-            <div ref="kawa" class="kawa">
-              <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
+            <div v-if="ban.kawa_indicators.length > 0" class="kawa-row">
+              <div class="kawa-head">
+                <h2>河</h2>
+                <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
+              </div>
+              <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）までスクロールする -->
+              <div ref="kawa" class="kawa">
+                <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
+              </div>
             </div>
           </div>
         </div>
@@ -175,23 +124,84 @@
 
       <!-- 手牌は親指の届く下に置く -->
       <div class="dock" :aria-busy="is_calculating ? 'true' : 'false'">
-        <div class="dock-bar">
-          <span class="dock-turn"><span class="num">{{ ban.turn }}</span>巡目</span>
-          <span v-if="is_calculating" class="dock-state is-busy" role="status">計算中</span>
-          <span v-else-if="is_finished" class="dock-state">終局</span>
-          <span class="dock-actions">
-            <button
-              v-if="pre_ban && ban.turn < 18 && !is_agari"
-              type="button"
-              class="btn btn-quiet btn-small"
-              @click="back_hand"
-            >
-              一手戻す
-            </button>
-            <button type="button" class="btn btn-quiet btn-small" @click="reset_hand">
-              はじめから
-            </button>
-          </span>
+        <!-- 手牌のすぐ上: 巡目・ドラ表示・最善に対するゲージ（手牌を見ながら使う情報を手牌の近くに）。
+             広い画面では 1 行、狭い画面では「巡目・ドラ表示・ボタン」と「ゲージ」の 2 段 -->
+        <div class="dock-head">
+          <div class="dock-bar">
+            <span class="dock-turn">
+              <span><span class="num">{{ ban.turn }}</span>巡目</span>
+              <span v-if="is_calculating" class="dock-state is-busy" role="status">計算中</span>
+              <span v-else-if="is_finished" class="dock-state">終局</span>
+              <span v-if="itte_modoshita" class="chip">一手戻した</span>
+            </span>
+            <span class="dock-dora">
+              <span class="dock-label">ドラ表示</span>
+              <span class="tiles">
+                <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
+              </span>
+            </span>
+            <span class="dock-actions">
+              <button
+                v-if="pre_ban && ban.turn < 18 && !is_agari"
+                type="button"
+                class="btn btn-quiet btn-small"
+                @click="back_hand"
+              >
+                一手戻す
+              </button>
+              <button type="button" class="btn btn-quiet btn-small" @click="reset_hand">
+                はじめから
+              </button>
+            </span>
+          </div>
+          <div class="dock-stats">
+            <p class="gauges-cap">
+              <span>最善に<span class="nobr">対する</span></span>
+            </p>
+            <ul class="gauges">
+              <li>
+                <div class="gauge-row">
+                  <span class="gauge-label">期待値損失</span>
+                  <span class="gauge-value num">-{{ ban.expected_lost_score_abs.toFixed(0) }}点</span>
+                </div>
+                <div :class="['meter', { 'is-muted': itte_modoshita }]">
+                  <i
+                    :style="{
+                      width:
+                        (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 + '%',
+                    }"
+                  ></i>
+                </div>
+                <p class="gauge-sub">
+                  この一手 <span class="num">-{{ ban.expected_current_lost_score_abs.toFixed(0) }}点</span>
+                </p>
+              </li>
+              <li>
+                <div class="gauge-row">
+                  <span class="gauge-label">和了率</span>
+                  <span class="gauge-value num">{{ (ban.agari_score_rate * 100).toFixed(0) }}%</span>
+                </div>
+                <div :class="['meter', { 'is-muted': itte_modoshita }]">
+                  <i :style="{ width: ban.agari_score_rate * 100 + '%' }"></i>
+                </div>
+                <p class="gauge-sub">
+                  この一手 <span class="num">x{{ ban.agari_score_rate_rate.toFixed(2) }}</span>
+                </p>
+              </li>
+              <li>
+                <div class="gauge-row">
+                  <span class="gauge-label">聴牌率</span>
+                  <span class="gauge-value num">{{ (ban.tempai_score_rate * 100).toFixed(0) }}%</span>
+                </div>
+                <div :class="['meter', { 'is-muted': itte_modoshita }]">
+                  <i :style="{ width: ban.tempai_score_rate * 100 + '%' }"></i>
+                </div>
+                <p class="gauge-sub">
+                  この一手 <span class="num">x{{ ban.tempai_score_rate_rate.toFixed(2) }}</span>
+                </p>
+              </li>
+            </ul>
+          </div>
         </div>
         <HandAndMeldedBlocks
           @remove-tile="next_tile"
@@ -1050,7 +1060,7 @@ export default {
   min-width: 0;
   min-height: 0;
 }
-/* 広い画面（スマホの横・PC）: 左の列に場・ゲージ・河、右の列の高さいっぱいに候補 */
+/* 広い画面（スマホの横・PC）: 左の列に場・河、右の列の高さいっぱいに候補 */
 @media (min-width: 760px) {
   .board-body {
     grid-template-rows: minmax(0, 1fr);
@@ -1064,18 +1074,8 @@ export default {
   }
 }
 .panel-tight,
-.score,
 .finish {
   padding: 10px 14px 12px;
-}
-.score .table-info {
-  margin-inline: -14px;
-  padding: 0 14px 6px;
-  margin-bottom: 6px;
-  --tile-w: 22px;
-}
-.gauges-cap {
-  line-height: 1.3;
 }
 .actions {
   display: flex;
@@ -1110,16 +1110,20 @@ export default {
 .finish .actions {
   margin: 0 0 0 auto;
 }
-/* 点数の盤: 場の情報とゲージ */
+/* 場の情報（場・自風）。河と同じ欄の上の段 */
 .table-info {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 6px 18px;
-  padding-bottom: 12px;
-  margin: 0 -16px 12px;
-  padding-inline: 16px;
-  border-bottom: 1px solid var(--line);
+  gap: 4px 18px;
+  margin: 0 -14px;
+  padding: 0 14px 6px;
+  line-height: 1.4;
+}
+.kawa-row {
+  margin: 0 -14px;
+  padding: 8px 14px 0;
+  border-top: 1px solid var(--line);
 }
 .table-info > div {
   display: flex;
@@ -1133,63 +1137,6 @@ export default {
 .table-info dd {
   font-weight: 600;
 }
-.table-info .chip {
-  margin-left: auto;
-}
-.gauges-cap {
-  margin-bottom: 6px;
-  font-size: 0.78rem;
-  color: var(--ink-soft);
-}
-.gauges {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-}
-.gauge-row {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 6px;
-}
-.gauge-label {
-  font-size: 0.8rem;
-  line-height: 1.4;
-  color: var(--ink-soft);
-}
-.gauge-value {
-  font-size: 1.25rem;
-  font-weight: 500;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-.gauge-sub {
-  margin-top: 4px;
-  font-size: 0.72rem;
-  line-height: 1.35;
-  white-space: nowrap;
-  color: var(--ink-faint);
-}
-.gauge-sub .num {
-  color: var(--ink-soft);
-}
-/* 盤の幅で決める（2 列の左の列でも崩れないよう、画面の幅ではなく盤の幅で） */
-.score {
-  container-type: inline-size;
-}
-@container (min-width: 520px) {
-  .gauges {
-    gap: 28px;
-  }
-  .gauge-row {
-    flex-direction: row;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 8px;
-  }
-  .gauge-value {
-    font-size: 1.35rem;
-  }
-}
 
 .start {
   display: flex;
@@ -1201,7 +1148,7 @@ export default {
 }
 
 /* 河: 見出しを左に置き、牌は横に並べて折り返す。高さは 2 段まで（超えたら枠の中でスクロールする） */
-.kawa-panel {
+.kawa-row {
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1345,13 +1292,92 @@ export default {
 .dock-bar {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 4px 14px;
   min-height: 34px;
   padding: 0 4px;
 }
+/* ドラ表示（手牌の判断に使うので、手牌の近くに） */
+.dock-dora {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  --tile-w: 20px;
+}
+.dock-label {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+/* 最善に対するゲージ: 見出しの小さな列と、3 つのゲージ */
+.dock-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 4px 6px;
+}
+.gauges-cap {
+  flex: none;
+  width: 4.2em;
+  font-size: 0.7rem;
+  line-height: 1.25;
+  color: var(--ink-soft);
+}
+.gauges-cap .nobr {
+  white-space: nowrap;
+}
+.dock-turn .chip {
+  align-self: center;
+  padding: 0 4px;
+  font-weight: 400;
+  font-size: 0.64rem;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.gauges {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.gauge-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 3px;
+}
+.gauge-label {
+  font-size: 0.72rem;
+  line-height: 1.3;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+.gauge-value {
+  font-size: 1.05rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.gauge-sub {
+  margin-top: 2px;
+  font-size: 0.68rem;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--ink-faint);
+}
+.gauge-sub .num {
+  color: var(--ink-soft);
+}
+.dock .meter {
+  height: 5px;
+}
 .dock-turn {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
   font-weight: 600;
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 .dock-turn .num {
   font-size: 1.15rem;
@@ -1400,6 +1426,71 @@ export default {
     border: 1px solid var(--line-strong);
     border-bottom: 0;
     border-radius: var(--radius) var(--radius) 0 0;
+  }
+}
+/* 広い画面: 手牌の上の段を 1 行に（巡目・ドラ表示 | 最善に対するゲージ | ボタン）。
+   候補の欄の高さを減らさないよう、前の巡目の行と同じくらいの高さに収める */
+@media (min-width: 760px) {
+  .dock-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 34px;
+    padding: 0 4px 2px;
+  }
+  .dock-bar {
+    display: contents;
+  }
+  .dock-turn {
+    order: 1;
+  }
+  .dock-dora {
+    order: 2;
+  }
+  .dock-stats {
+    order: 3;
+    flex: 1;
+    min-width: 0;
+    padding: 0;
+  }
+  .dock-actions {
+    order: 4;
+  }
+  .gauges-cap {
+    width: 3.6em;
+    font-size: 0.66rem;
+    line-height: 1.2;
+  }
+  /* ゲージは 2 段: 名前と値 / メーターと「この一手」 */
+  .gauges li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 8px;
+  }
+  .gauge-row {
+    display: contents;
+  }
+  .gauge-value {
+    line-height: 1.1;
+    text-align: right;
+  }
+  .gauge-sub {
+    margin: 0;
+    font-size: 0.66rem;
+    line-height: 1.2;
+    text-align: right;
+  }
+  .dock .meter {
+    height: 4px;
+  }
+}
+@media (min-width: 1200px) {
+  .gauges {
+    gap: 28px;
+  }
+  .gauge-value {
+    font-size: 1.15rem;
   }
 }
 
@@ -1542,30 +1633,30 @@ export default {
     padding-block: 2px;
   }
   .panel-tight,
-  .score,
   .finish {
     padding: 6px 12px 8px;
   }
   .finish {
     margin-bottom: 8px;
   }
-  .score .table-info {
+  .table-info {
     margin-inline: -12px;
     padding: 0 12px 4px;
-    margin-bottom: 4px;
+  }
+  .kawa-row {
+    margin-inline: -12px;
+    padding: 6px 12px 0;
+  }
+  .dock-head {
+    min-height: 30px;
+    padding-bottom: 0;
+  }
+  .dock-dora {
     --tile-w: 18px;
   }
-  .gauges-cap {
-    margin-bottom: 2px;
-  }
-  .gauge-row {
-    margin-bottom: 3px;
-  }
-  .gauge-value {
-    font-size: 1.05rem;
-  }
-  .gauge-sub {
-    margin-top: 2px;
+  .dock-actions .btn-small {
+    min-height: 26px;
+    padding-block: 1px;
   }
   .kawa {
     --tile-w: 18px;
