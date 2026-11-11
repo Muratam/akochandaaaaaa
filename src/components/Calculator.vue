@@ -30,149 +30,145 @@
       role="tabpanel"
       aria-labelledby="tab-0"
     >
-      <!-- 伸びる中身はこの枠の中だけで送る。ページ全体はスクロールしない -->
+      <!-- ページ全体はスクロールしない。広い画面: 左に場・ゲージ・河、右に前の一手の候補。狭い画面: 縦に並べ、残りの高さを候補に -->
       <div ref="body" class="board-body">
-        <div v-if="is_finished" class="panel finish">
-          <h2>結果</h2>
-          <p class="finish-text">{{ state_info_without_config }}</p>
-          <div class="actions">
-            <button type="button" class="btn btn-primary" @click="set_random_hand">
-              次の盤面へ
-            </button>
-            <TwitterShare
-              :url="state_url"
-              hashtags="牌効率チェッカー"
-              :title="state_info"
-              class="btn"
-            >
-              つぶやく
-            </TwitterShare>
+        <div class="board-side">
+          <div class="panel score">
+            <dl class="table-info">
+              <div>
+                <dt>ドラ表示</dt>
+                <dd class="tiles">
+                  <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
+                </dd>
+              </div>
+              <div>
+                <dt>場</dt>
+                <dd>{{ tile2String(bakaze) }}場</dd>
+              </div>
+              <div>
+                <dt>自風</dt>
+                <dd>{{ tile2String(zikaze) }}家</dd>
+              </div>
+              <span v-if="itte_modoshita" class="chip">一手戻した</span>
+            </dl>
+            <p class="gauges-cap">最善に対する</p>
+            <ul class="gauges">
+              <li>
+                <div class="gauge-row">
+                  <span class="gauge-label">期待値損失</span>
+                  <span class="gauge-value num">-{{ ban.expected_lost_score_abs.toFixed(0) }}点</span>
+                </div>
+                <div :class="['meter', { 'is-muted': itte_modoshita }]">
+                  <i
+                    :style="{
+                      width:
+                        (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 + '%',
+                    }"
+                  ></i>
+                </div>
+                <p class="gauge-sub">
+                  この一手 <span class="num">-{{ ban.expected_current_lost_score_abs.toFixed(0) }}点</span>
+                </p>
+              </li>
+              <li>
+                <div class="gauge-row">
+                  <span class="gauge-label">和了率</span>
+                  <span class="gauge-value num">{{ (ban.agari_score_rate * 100).toFixed(0) }}%</span>
+                </div>
+                <div :class="['meter', { 'is-muted': itte_modoshita }]">
+                  <i :style="{ width: ban.agari_score_rate * 100 + '%' }"></i>
+                </div>
+                <p class="gauge-sub">
+                  この一手 <span class="num">x{{ ban.agari_score_rate_rate.toFixed(2) }}</span>
+                </p>
+              </li>
+              <li>
+                <div class="gauge-row">
+                  <span class="gauge-label">聴牌率</span>
+                  <span class="gauge-value num">{{ (ban.tempai_score_rate * 100).toFixed(0) }}%</span>
+                </div>
+                <div :class="['meter', { 'is-muted': itte_modoshita }]">
+                  <i :style="{ width: ban.tempai_score_rate * 100 + '%' }"></i>
+                </div>
+                <p class="gauge-sub">
+                  この一手 <span class="num">x{{ ban.tempai_score_rate_rate.toFixed(2) }}</span>
+                </p>
+              </li>
+            </ul>
+          </div>
+
+          <div v-if="ban.kawa_indicators.length > 0" class="panel panel-tight kawa-panel">
+            <div class="kawa-head">
+              <h2>河</h2>
+              <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
+            </div>
+            <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）へ送る -->
+            <div ref="kawa" class="kawa">
+              <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
+            </div>
           </div>
         </div>
 
-        <div class="panel score">
-          <dl class="table-info">
-            <div>
-              <dt>ドラ表示</dt>
-              <dd class="tiles">
-                <TileImage v-for="(tile, i) in dora_indicators" :key="i" :tile="tile" />
-              </dd>
+        <div class="board-cands">
+          <div v-if="is_finished" class="panel finish">
+            <p class="finish-text"><span class="finish-label">結果</span>{{ state_info_without_config }}</p>
+            <div class="actions">
+              <button type="button" class="btn btn-primary btn-small" @click="set_random_hand">
+                次の盤面へ
+              </button>
+              <TwitterShare
+                :url="state_url"
+                hashtags="牌効率チェッカー"
+                :title="state_info"
+                class="btn"
+              >
+                つぶやく
+              </TwitterShare>
             </div>
-            <div>
-              <dt>場</dt>
-              <dd>{{ tile2String(bakaze) }}場</dd>
-            </div>
-            <div>
-              <dt>自風</dt>
-              <dd>{{ tile2String(zikaze) }}家</dd>
-            </div>
-            <span v-if="itte_modoshita" class="chip">一手戻した</span>
-          </dl>
-          <p class="gauges-cap">最善に対する</p>
-          <ul class="gauges">
-            <li>
-              <div class="gauge-row">
-                <span class="gauge-label">期待値損失</span>
-                <span class="gauge-value num">-{{ ban.expected_lost_score_abs.toFixed(0) }}点</span>
-              </div>
-              <div :class="['meter', { 'is-muted': itte_modoshita }]">
-                <i
-                  :style="{
-                    width:
-                      (Math.max(0, 2000 - ban.expected_lost_score_abs) / 2000) * 100 + '%',
-                  }"
-                ></i>
-              </div>
-              <p class="gauge-sub">
-                この一手<br /><span class="num">-{{ ban.expected_current_lost_score_abs.toFixed(0) }}点</span>
-              </p>
-            </li>
-            <li>
-              <div class="gauge-row">
-                <span class="gauge-label">和了率</span>
-                <span class="gauge-value num">{{ (ban.agari_score_rate * 100).toFixed(0) }}%</span>
-              </div>
-              <div :class="['meter', { 'is-muted': itte_modoshita }]">
-                <i :style="{ width: ban.agari_score_rate * 100 + '%' }"></i>
-              </div>
-              <p class="gauge-sub">
-                この一手<br /><span class="num">x{{ ban.agari_score_rate_rate.toFixed(2) }}</span>
-              </p>
-            </li>
-            <li>
-              <div class="gauge-row">
-                <span class="gauge-label">聴牌率</span>
-                <span class="gauge-value num">{{ (ban.tempai_score_rate * 100).toFixed(0) }}%</span>
-              </div>
-              <div :class="['meter', { 'is-muted': itte_modoshita }]">
-                <i :style="{ width: ban.tempai_score_rate * 100 + '%' }"></i>
-              </div>
-              <p class="gauge-sub">
-                この一手<br /><span class="num">x{{ ban.tempai_score_rate_rate.toFixed(2) }}</span>
-              </p>
-            </li>
-          </ul>
-        </div>
-
-        <div v-if="ban.turn <= 1 && !is_finished" class="start">
-          <p class="quiet">下の手牌から、捨てる牌を押す。押すたびに最善の打牌と比べて採点する。</p>
-          <button type="button" class="btn" @click="set_random_hand">
-            別の盤面で遊ぶ！
-          </button>
-        </div>
-
-        <div v-if="ban.kawa_indicators.length > 0" class="panel panel-tight">
-          <div class="mini-head">
-            <h2>河</h2>
-            <span class="panel-aside">{{ ban.kawa_indicators.length }}枚</span>
           </div>
-          <!-- 横に並べて折り返す。高さに上限があり、超えたら枠の中で最新（下）へ送る -->
-          <div ref="kawa" class="kawa">
-            <TileImage v-for="(tile, i) in ban.kawa_indicators" :key="i" :tile="tile" />
-          </div>
-        </div>
 
-        <div v-if="ban.turn > 1" ref="prev" class="panel panel-tight prev">
-          <!-- いつも出す 1 行: 自分の打牌と最善の打牌の差。候補の表は開いたときだけ -->
-          <div class="prev-line">
-            <h2 class="prev-title">
-              前の一手<span class="prev-turn">{{ ban.turn - 1 }}巡目</span>
-            </h2>
-            <span class="prev-pair">
-              <span class="prev-who">自分</span>
-              <span class="prev-tile is-mine"><TileImage :tile="last_discard" /></span>
-              <template v-if="prev_summary && !prev_summary.same">
-                <span class="prev-who">最善</span>
-                <span class="prev-tile"><TileImage :tile="prev_summary.best_tile" /></span>
-              </template>
-            </span>
-            <span :class="['prev-diff', 'num', prev_diff_class]">{{ prev_diff_text }}</span>
-            <button
-              type="button"
-              class="btn btn-quiet btn-small prev-more"
-              :aria-expanded="show_cands ? 'true' : 'false'"
-              aria-controls="prev-detail"
-              @click="toggle_cands"
-            >
-              候補<span aria-hidden="true" class="prev-caret">{{ show_cands ? "▴" : "▾" }}</span>
+          <div v-if="ban.turn <= 1 && !is_finished" class="panel start">
+            <p class="quiet">
+              下の手牌から、捨てる牌を押す。押すたびに最善の打牌と比べて採点し、ここに候補を並べる。
+            </p>
+            <button type="button" class="btn" @click="set_random_hand">
+              別の盤面で遊ぶ！
             </button>
           </div>
-          <div v-show="show_cands" id="prev-detail" class="prev-detail">
-            <div class="prev-move">
-              <span class="prev-discard">
-                <TileImage :tile="last_discard" />
+
+          <div v-if="ban.turn > 1" class="panel panel-tight prev">
+            <!-- 自分の打牌と最善の打牌の差の 1 行と、候補の表（いつも出す。表はこの欄の中だけで送る） -->
+            <div class="prev-line">
+              <h2 class="prev-title">
+                前の一手<span class="prev-turn">{{ ban.turn - 1 }}巡目</span>
+              </h2>
+              <span class="prev-pair">
+                <span class="prev-who">自分</span>
+                <span class="prev-tile is-mine"><TileImage :tile="last_discard" /></span>
+                <template v-if="prev_summary && !prev_summary.same">
+                  <span class="prev-who">最善</span>
+                  <span class="prev-tile"><TileImage :tile="prev_summary.best_tile" /></span>
+                </template>
               </span>
-              <span class="prev-arrow" aria-hidden="true">←</span>
-              <span class="tiles prev-hand">
-                <TileImage v-for="(tile, i) in ban.pre_hand_tiles" :key="i" :tile="tile" />
-              </span>
+              <span :class="['prev-diff', 'num', prev_diff_class]">{{ prev_diff_text }}</span>
             </div>
-            <Result
-              :result="ban.pre_result"
-              :is_show_graph="false"
-              :hand_tiles="ban.pre_hand_tiles"
-              :selected_tile="last_discard"
-            />
+            <div ref="cands" class="prev-detail">
+              <div class="prev-move">
+                <span class="prev-discard">
+                  <TileImage :tile="last_discard" />
+                </span>
+                <span class="prev-arrow" aria-hidden="true">←</span>
+                <span class="tiles prev-hand">
+                  <TileImage v-for="(tile, i) in ban.pre_hand_tiles" :key="i" :tile="tile" />
+                </span>
+              </div>
+              <Result
+                :result="ban.pre_result"
+                :is_show_graph="false"
+                :hand_tiles="ban.pre_hand_tiles"
+                :selected_tile="last_discard"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -435,16 +431,6 @@ const requestIdle =
 // めんどいので雑に(vueバインドしたくない)
 let yama = [];
 const localstorage_key = "dahaisv3";
-// 「前の一手」の候補の表を開いておくか（このブラウザだけの好み。読めなくても閉じた形で動く）
-const show_cands_key = "ako-show-cands";
-function loadShowCands() {
-  try {
-    return window.localStorage.getItem(show_cands_key) === "1";
-  } catch {
-    return false;
-  }
-}
-
 export default {
   name: "Calculator",
   components: {
@@ -481,7 +467,6 @@ export default {
       storage: [],
       tacha_tempai_percent: 72,
       copy_status: "",
-      show_cands: loadShowCands(),
       // BEGIN: 盤面
       ban: {
         expected_lost_score_abs: 0,
@@ -684,22 +669,6 @@ export default {
   },
 
   methods: {
-    toggle_cands() {
-      this.show_cands = !this.show_cands;
-      try {
-        window.localStorage.setItem(show_cands_key, this.show_cands ? "1" : "0");
-      } catch {
-        // 保存できなくても、この画面の間は開いたまま
-      }
-      if (this.show_cands) {
-        // 開いたら「前の一手」を中の枠の上端へ送り、表が見えるようにする（ページは動かさない）
-        this.$nextTick(() => {
-          const body = this.$refs.body;
-          const prev = this.$refs.prev;
-          if (body && prev) body.scrollTop = prev.offsetTop - 8;
-        });
-      }
-    },
     copy_url() {
       const url = this.state_url;
       Promise.resolve()
@@ -901,6 +870,12 @@ export default {
     },
   },
   watch: {
+    // 一手ごとに候補の表を先頭（最善の候補）へ戻す
+    "ban.turn"() {
+      this.$nextTick(() => {
+        if (this.$refs.cands) this.$refs.cands.scrollTop = 0;
+      });
+    },
     // 河が上限の高さを超えたら、枠の中で最新の牌が見える位置へ送る
     "ban.kawa_indicators.length"() {
       this.$nextTick(() => {
@@ -930,6 +905,8 @@ export default {
 .ako {
   --tile-w: 28px;
   --gutter: 16px;
+  /* 中身の列の幅。大きな画面では候補の表の有効牌まで見えるよう広げる */
+  --col: 980px;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -944,7 +921,7 @@ export default {
   align-items: center;
   gap: 8px;
   width: 100%;
-  max-width: 980px;
+  max-width: var(--col);
   margin: 0 auto;
   padding: 0 8px 0 16px;
   border-bottom: 1px solid var(--line);
@@ -1027,7 +1004,7 @@ export default {
 }
 
 /* ---- 中身 ---- */
-/* 中身の枠: 幅は 980px の列（送りのつまみは画面の端に出るよう、余白で列を作る） */
+/* 中身の枠: 幅は --col の列（送りのつまみは画面の端に出るよう、余白で列を作る） */
 .ako-main {
   flex: 1;
   min-height: 0;
@@ -1035,7 +1012,7 @@ export default {
   flex-direction: column;
   gap: 12px;
   width: 100%;
-  padding: 14px max(var(--gutter), calc((100% - 980px) / 2 + var(--gutter))) 32px;
+  padding: 14px max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter))) 32px;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -1049,15 +1026,42 @@ export default {
   position: relative;
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* 狭い画面: 上に場・ゲージ・河、残りの高さを全部候補に */
+  grid-template-rows: auto minmax(180px, 1fr);
   gap: 10px;
-  padding: 12px max(var(--gutter), calc((100% - 980px) / 2 + var(--gutter))) 12px;
+  padding: 10px max(var(--gutter), calc((100% - var(--col)) / 2 + var(--gutter)));
+  /* 収まらないときだけの逃げ道（決めた画面の大きさでは送らずに収まる） */
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-.board-body > * {
+.board-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+.board-side > * {
   flex: none;
+}
+.board-cands {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+/* 広い画面（スマホの横・PC）: 左の列に場・ゲージ・河、右の列の高さいっぱいに候補 */
+@media (min-width: 760px) {
+  .board-body {
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-columns: minmax(300px, 5fr) minmax(0, 6fr);
+    gap: 12px;
+  }
+}
+@media (min-width: 1200px) {
+  .ako {
+    --col: 1160px;
+  }
 }
 .panel-tight,
 .score,
@@ -1066,17 +1070,12 @@ export default {
 }
 .score .table-info {
   margin-inline: -14px;
-  padding: 0 14px 8px;
-  margin-bottom: 8px;
-}
-.finish .actions {
-  margin-top: 8px;
-}
-.mini-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
+  padding: 0 14px 6px;
   margin-bottom: 6px;
+  --tile-w: 22px;
+}
+.gauges-cap {
+  line-height: 1.3;
 }
 .actions {
   display: flex;
@@ -1085,20 +1084,32 @@ export default {
   margin-top: 12px;
 }
 
-/* 結果（18巡目か和了で終わったとき） */
+/* 結果（18巡目か和了で終わったとき）: 候補の上に 1 段で */
 .finish {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 12px;
+  margin-bottom: 10px;
   border-color: var(--accent);
   box-shadow: inset 3px 0 0 var(--accent);
 }
-.finish h2 {
+.finish-label {
+  margin-right: 10px;
   color: var(--accent);
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 .finish-text {
-  margin-top: 4px;
-  font-size: 1.05rem;
+  flex: 1 1 16em;
+  font-size: 0.95rem;
   font-weight: 600;
+  line-height: 1.45;
 }
-
+.finish .actions {
+  margin: 0 0 0 auto;
+}
 /* 点数の盤: 場の情報とゲージ */
 .table-info {
   display: flex;
@@ -1142,6 +1153,7 @@ export default {
 }
 .gauge-label {
   font-size: 0.8rem;
+  line-height: 1.4;
   color: var(--ink-soft);
 }
 .gauge-value {
@@ -1151,15 +1163,20 @@ export default {
   white-space: nowrap;
 }
 .gauge-sub {
-  margin-top: 5px;
+  margin-top: 4px;
   font-size: 0.72rem;
   line-height: 1.35;
+  white-space: nowrap;
   color: var(--ink-faint);
 }
 .gauge-sub .num {
   color: var(--ink-soft);
 }
-@media (min-width: 700px) {
+/* 盤の幅で決める（2 列の左の列でも崩れないよう、画面の幅ではなく盤の幅で） */
+.score {
+  container-type: inline-size;
+}
+@container (min-width: 520px) {
   .gauges {
     gap: 28px;
   }
@@ -1172,12 +1189,6 @@ export default {
   .gauge-value {
     font-size: 1.35rem;
   }
-  .gauge-sub br {
-    display: none;
-  }
-  .gauge-sub .num {
-    margin-left: 4px;
-  }
 }
 
 .start {
@@ -1189,9 +1200,22 @@ export default {
   font-size: 0.86rem;
 }
 
-/* 河: 横に並べて折り返す。高さは 2 段まで（超えたら枠の中で送る） */
+/* 河: 見出しを左に置き、牌は横に並べて折り返す。高さは 2 段まで（超えたら枠の中で送る） */
+.kawa-panel {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.kawa-head {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  line-height: 1.3;
+}
 .kawa {
-  --tile-w: 24px;
+  --tile-w: 22px;
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 3px 2px;
@@ -1199,23 +1223,32 @@ export default {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-@media (min-width: 700px) {
+@media (min-width: 1200px) and (min-height: 760px) {
   .kawa {
-    --tile-w: 28px;
+    --tile-w: 26px;
   }
 }
 
-/* 前の一手: いつも出す 1 行（自分と最善の打牌・差）と、開いたときだけの候補の表 */
+/* 前の一手: 自分と最善の打牌・差の 1 行と、候補の表。欄は右の列（狭い画面では残りの高さ）いっぱいで、表だけ中で送る */
+.prev {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+}
 .prev-line {
+  flex: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px 10px;
-  min-height: 40px;
+  gap: 4px 10px;
+  min-height: 34px;
 }
 .prev-title {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
+  gap: 6px;
   line-height: 1.25;
   white-space: nowrap;
 }
@@ -1247,6 +1280,7 @@ export default {
   box-shadow: inset 0 0 0 1px var(--accent);
 }
 .prev-diff {
+  margin-left: auto;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -1256,50 +1290,36 @@ export default {
 .prev-diff.is-bad {
   color: var(--bad);
 }
-.prev-more {
-  margin-left: auto;
-  padding-inline: 8px;
-}
-.prev-caret {
-  font-size: 0.75em;
-  color: var(--ink-soft);
-}
+/* 候補の表の送り枠（見出しの行は上に留まる） */
 .prev-detail {
-  margin: 10px -14px 0;
-  padding: 10px 14px 0;
+  flex: 1;
+  min-height: 0;
+  margin: 8px -14px 0;
+  padding: 0 8px;
   border-top: 1px solid var(--line);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
-@media (min-width: 700px) {
-  .prev-pair {
-    --tile-w: 26px;
-  }
-  .prev-line {
-    gap: 8px 18px;
-  }
-  .prev-title {
-    flex-direction: row;
-    align-items: baseline;
-    gap: 10px;
-  }
-  .prev-who {
-    font-size: 0.78rem;
-  }
-}
-
+/* 捨てる前の手牌: 縦に余裕のある大きな画面だけ */
 .prev-move {
-  display: flex;
+  display: none;
   align-items: center;
   gap: 6px;
-  margin-bottom: 10px;
-  --tile-w: 18px;
+  padding: 8px 6px;
+  --tile-w: 20px;
 }
-@media (min-width: 700px) {
+@media (min-width: 760px) and (min-height: 700px) {
+  .prev-move {
+    display: flex;
+  }
+}
+@media (min-width: 1200px) and (min-height: 760px) {
   .prev-move {
     --tile-w: 22px;
   }
 }
 .prev-discard {
-  --tile-w: 28px;
+  --tile-w: 26px;
   padding: 2px;
   border-radius: 4px;
   background: var(--accent-soft);
@@ -1374,7 +1394,7 @@ export default {
 @media (min-width: 700px) {
   .dock {
     width: calc(100% - 2 * var(--gutter));
-    max-width: calc(980px - 2 * var(--gutter));
+    max-width: calc(var(--col) - 2 * var(--gutter));
     margin: 0 auto;
     padding-inline: 16px;
     border: 1px solid var(--line-strong);
@@ -1492,5 +1512,72 @@ export default {
 }
 .howto li::marker {
   color: var(--ink-faint);
+}
+
+/* ---- 縦の短い画面（スマホの横など）: 上の帯と手牌の台を詰めて、盤と候補に高さを回す ---- */
+@media (max-height: 500px) {
+  .ako-brand {
+    min-height: 30px;
+  }
+  .ako-tab {
+    min-height: 40px;
+  }
+  .board-body {
+    padding-block: 8px;
+    gap: 8px;
+  }
+  .board-side {
+    gap: 8px;
+  }
+  .dock {
+    --hand-max: 40px;
+    padding-top: 2px;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+  .dock-bar {
+    min-height: 30px;
+  }
+  .dock-bar .btn-small {
+    min-height: 28px;
+    padding-block: 2px;
+  }
+  .panel-tight,
+  .score,
+  .finish {
+    padding: 6px 12px 8px;
+  }
+  .finish {
+    margin-bottom: 8px;
+  }
+  .score .table-info {
+    margin-inline: -12px;
+    padding: 0 12px 4px;
+    margin-bottom: 4px;
+    --tile-w: 18px;
+  }
+  .gauges-cap {
+    margin-bottom: 2px;
+  }
+  .gauge-row {
+    margin-bottom: 3px;
+  }
+  .gauge-value {
+    font-size: 1.05rem;
+  }
+  .gauge-sub {
+    margin-top: 2px;
+  }
+  .kawa {
+    --tile-w: 18px;
+  }
+  .prev-line {
+    min-height: 28px;
+  }
+  .prev-pair {
+    --tile-w: 18px;
+  }
+  .prev-detail {
+    margin-top: 4px;
+  }
 }
 </style>

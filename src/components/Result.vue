@@ -4,28 +4,14 @@
     <template v-if="result && result.success">
       <!-- 打牌一覧 -->
       <template v-if="!showGraph && !is_show_graph">
-        <!-- 狭い画面では表の見出しの代わりに、ここで並べ替える -->
-        <div v-if="sortableFields.length" class="sorter" role="group" aria-label="並べ替え">
-          <span class="sorter-label">並べ替え</span>
-          <button
-            v-for="field in sortableFields"
-            :key="field.key"
-            type="button"
-            class="sorter-btn"
-            :aria-pressed="localSortBy === field.key ? 'true' : 'false'"
-            @click="onHeaderClick(field)"
-          >
-            {{ field.label }}<span class="sort-icon" aria-hidden="true">{{ sortIcon(field) }}</span>
-          </button>
-        </div>
-        <table class="cands">
+        <!-- 1 候補 1 行。欄が狭いときは有効牌の列を隠す（期待値などの数字を優先） -->
+        <table :class="['cands', { 'has-exp': hasExp }]">
           <thead>
             <tr>
               <th
                 v-for="field in fields"
                 :key="field.key"
                 scope="col"
-                :style="field.thStyle"
                 :class="['c-' + field.key, { sortable: field.sortable }]"
                 :aria-sort="ariaSort(field)"
               >
@@ -214,8 +200,8 @@ export default {
   },
 
   computed: {
-    sortableFields() {
-      return this.fields.filter((f) => f.sortable);
+    hasExp() {
+      return this.fields.some((f) => f.key === "exp_value");
     },
     sortedItems() {
       const key = this.localSortBy;
@@ -375,7 +361,6 @@ export default {
             key: "tile",
             label: "打牌",
             sortable: true,
-            thStyle: "width: 70px;",
           },
         ];
 
@@ -385,21 +370,18 @@ export default {
               key: "exp_value",
               label: "期待値",
               sortable: true,
-              thStyle: "width: 100px;",
               formatter: (x) => Math.floor(x) + "点",
             },
             {
               key: "win_prob",
               label: "和了率",
               sortable: true,
-              thStyle: "width: 100px;",
               formatter: (x) => (x * 100).toFixed(2) + "%",
             },
             {
               key: "tenpai_prob",
               label: "聴牌率",
               sortable: true,
-              thStyle: "width: 100px;",
               formatter: (x) => (x * 100).toFixed(2) + "%",
             },
           ]);
@@ -410,7 +392,6 @@ export default {
             key: "n_required_tiles",
             label: "受入",
             sortable: true,
-            thStyle: "width: 110px;",
           },
           {
             key: "required_tiles",
@@ -427,7 +408,6 @@ export default {
             key: "n_required_tiles",
             label: "受入",
             sortable: false,
-            thStyle: "width: 100px;",
           },
           {
             key: "required_tiles",
@@ -607,55 +587,22 @@ export default {
   --tile-w: 30px;
 }
 
-/* ---- 並べ替え（狭い画面だけ） ---- */
-.sorter {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-}
-.sorter-label {
-  font-size: 0.76rem;
-  color: var(--ink-faint);
-  margin-right: 2px;
-}
-.sorter-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 34px;
-  padding: 0 10px;
-  background: none;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--radius-sm);
-  color: var(--ink-soft);
-  font: inherit;
-  font-size: 0.8rem;
-  cursor: pointer;
-}
-.sorter-btn[aria-pressed="true"] {
-  color: var(--ink);
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.sort-icon {
-  font-size: 0.75em;
-  opacity: 0.6;
-  margin-left: 3px;
-}
-
-/* ---- 候補の表 ---- */
+/* ---- 候補の表: 1 候補 1 行。見出しは送り枠の上に留める ---- */
 .cands {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
+  line-height: 1.3;
 }
 .cands th {
-  padding: 4px 8px 6px;
-  border-bottom: 1px solid var(--line-strong);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0 6px;
+  background: var(--surface);
+  box-shadow: inset 0 -1px 0 var(--line-strong);
   color: var(--ink-soft);
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   font-weight: 600;
   text-align: left;
   white-space: nowrap;
@@ -663,7 +610,7 @@ export default {
 .th-btn {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
+  min-height: 28px;
   padding: 0;
   background: none;
   border: 0;
@@ -676,10 +623,16 @@ th[aria-sort="ascending"] .th-btn,
 th[aria-sort="descending"] .th-btn {
   color: var(--ink);
 }
+.sort-icon {
+  font-size: 0.75em;
+  opacity: 0.6;
+  margin-left: 2px;
+}
 .cands td {
-  padding: 8px;
+  padding: 3px 6px;
   border-bottom: 1px solid var(--line);
   vertical-align: middle;
+  white-space: nowrap;
 }
 .cands tbody tr:hover {
   background: var(--surface-2);
@@ -690,88 +643,52 @@ th[aria-sort="descending"] .th-btn {
   box-shadow: inset 3px 0 0 var(--accent);
 }
 .c-tile {
-  width: 56px;
+  width: 1%;
+  --tile-w: 22px;
 }
 .down {
-  display: block;
-  font-size: 0.76rem;
+  margin-left: 4px;
+  font-size: 0.72rem;
   color: var(--warn);
 }
+.c-required_tiles {
+  white-space: normal;
+}
 .eff {
-  --tile-w: 22px;
+  --tile-w: 16px;
   gap: 1px;
 }
-
-/* 狭い画面: 1 行を 3 段のカードにする（打牌｜数字 3 つ／受入／有効牌） */
-@media (max-width: 639px) {
-  .cands thead {
+/* 欄が狭い（スマホの縦・横）: 数字の列を優先して、有効牌の列は隠す */
+@container (max-width: 559px) {
+  .cands.has-exp .c-required_tiles {
     display: none;
   }
-  .cands tbody,
-  .cands tr,
+  .cands th,
   .cands td {
-    display: block;
-  }
-  .cands tr {
-    display: grid;
-    grid-template-columns: 40px repeat(3, minmax(0, 1fr));
-    grid-template-areas:
-      "tile exp win ten"
-      "tile req req req"
-      "eff eff eff eff";
-    gap: 2px 8px;
-    padding: 10px 8px;
-    border-bottom: 1px solid var(--line);
-  }
-  .cands td {
-    padding: 0;
-    border: 0;
-  }
-  .cands td[data-label]::before {
-    content: attr(data-label);
-    display: block;
-    font-size: 0.7rem;
-    line-height: 1.3;
-    color: var(--ink-faint);
-  }
-  .c-tile {
-    grid-area: tile;
-    width: auto;
-    --tile-w: 36px;
-  }
-  .c-exp_value {
-    grid-area: exp;
-  }
-  .c-win_prob {
-    grid-area: win;
-  }
-  .c-tenpai_prob {
-    grid-area: ten;
-  }
-  .c-n_required_tiles {
-    grid-area: req;
-    display: flex !important;
-    align-items: baseline;
-    flex-wrap: wrap;
-    gap: 0 8px;
-  }
-  .cands td.c-n_required_tiles::before {
-    display: inline;
-  }
-  .down {
-    display: inline;
-  }
-  .c-required_tiles {
-    grid-area: eff;
-    margin-top: 4px;
+    padding-inline: 4px;
   }
   .eff {
-    --tile-w: 20px;
+    --tile-w: 14px;
   }
 }
-@media (min-width: 640px) {
-  .sorter {
-    display: none;
+/* 縦の短い画面（スマホの横）: 行を詰めて、見える候補を増やす */
+@media (max-height: 500px) {
+  .cands td {
+    padding-block: 1px;
+  }
+  .c-tile {
+    --tile-w: 18px;
+  }
+  .th-btn {
+    min-height: 24px;
+  }
+}
+@container (min-width: 560px) {
+  .c-tile {
+    --tile-w: 24px;
+  }
+  .eff {
+    --tile-w: 18px;
   }
 }
 
