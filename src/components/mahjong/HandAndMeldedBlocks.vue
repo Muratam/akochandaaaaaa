@@ -80,7 +80,7 @@ export default {
 .hand {
   display: grid;
   grid-template-columns: repeat(14, minmax(0, var(--hand-max, 48px)));
-  justify-content: center;
+  justify-content: start; /* 左詰め（11-13 murata） */
   column-gap: 1px;
 }
 .hand.has-tsumo {
