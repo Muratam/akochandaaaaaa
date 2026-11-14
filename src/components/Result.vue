@@ -583,8 +583,9 @@ export default {
 </script>
 
 <style scoped>
+/* 牌の幅は親（.ako）の --sub-w（手牌の 85%）。単独で使うときは 30px */
 .result {
-  --tile-w: 30px;
+  --tile-w: var(--sub-w, 30px);
 }
 
 /* ---- 候補の表: 1 候補 1 行。見出しはスクロール枠の上に固定する ---- */
@@ -644,7 +645,6 @@ th[aria-sort="descending"] .th-btn {
 }
 .c-tile {
   width: 1%;
-  --tile-w: 22px;
 }
 .down {
   margin-left: 4px;
@@ -655,7 +655,6 @@ th[aria-sort="descending"] .th-btn {
   white-space: normal;
 }
 .eff {
-  --tile-w: 16px;
   gap: 1px;
 }
 /* 欄が狭い（スマホの縦・横）: 数字の列を優先して、有効牌の列は隠す */
@@ -667,26 +666,11 @@ th[aria-sort="descending"] .th-btn {
   .cands td {
     padding-inline: 4px;
   }
-  .eff {
-    --tile-w: 14px;
-  }
 }
-@container (min-width: 560px) {
-  .c-tile {
-    --tile-w: 24px;
-  }
-  .eff {
-    --tile-w: 18px;
-  }
-}
-/* 縦の短い画面（スマホの横）: 行を詰めて、見える候補を増やす。
-   欄が広くても牌は小さいままにする（上の幅の指定を上書きするので、その後ろに置く） */
+/* 縦の短い画面（スマホの横）: 行を詰めて、見える候補を増やす（牌の幅は親の --sub-w。有効牌はさらに小さく） */
 @media (max-height: 500px) {
   .cands td {
     padding-block: 1px;
-  }
-  .c-tile {
-    --tile-w: 18px;
   }
   .eff {
     --tile-w: 14px;

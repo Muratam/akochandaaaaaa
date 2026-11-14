@@ -897,7 +897,12 @@ export default {
  * 上の帯・手牌の台・中身を縦に並べ、伸びる中身は中身の枠の中だけでスクロールする。手牌の台はいつも同じ位置。
  */
 .ako {
-  --tile-w: 28px;
+  /* 手牌の 1 枚の幅（14 枚が 1 列に収まるよう画面の幅で割る。最大 --hand-max）と、
+     手牌以外の牌（ドラ表示・河・前の一手・候補・有効牌・配牌・ログ）の幅＝手牌の 85%（11-14 murata） */
+  --hand-max: 46px;
+  --hand-w: min(var(--hand-max), calc((100vw - 48px) / 14));
+  --sub-w: calc(var(--hand-w) * 0.85);
+  --tile-w: var(--sub-w);
   --gutter: 16px;
   /* 中身の列の幅。大きな画面では候補の表の有効牌まで見えるよう広げる */
   --col: 980px;
@@ -1119,7 +1124,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 5px;
-  --tile-w: 22px;
 }
 .prev-who {
   font-size: 0.72rem;
@@ -1161,23 +1165,17 @@ export default {
 /* 捨てる前の手牌: 縦に余裕のある大きな画面だけ */
 .prev-move {
   display: none;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
   padding: 8px 6px;
-  --tile-w: 20px;
 }
 @media (min-width: 760px) and (min-height: 760px) {
   .prev-move {
     display: flex;
   }
 }
-@media (min-width: 1200px) and (min-height: 760px) {
-  .prev-move {
-    --tile-w: 22px;
-  }
-}
 .prev-discard {
-  --tile-w: 26px;
   padding: 2px;
   border-radius: 4px;
   background: var(--accent-soft);
@@ -1198,7 +1196,6 @@ export default {
   padding: 8px 12px 4px;
   background: var(--bg-side);
   border-bottom: 1px solid var(--line-strong);
-  --hand-max: 46px;
 }
 .dock-bar {
   display: flex;
@@ -1213,7 +1210,6 @@ export default {
   display: flex;
   align-items: center;
   gap: 6px;
-  --tile-w: 20px;
 }
 .dock-label {
   font-size: 0.72rem;
@@ -1230,7 +1226,7 @@ export default {
 /* 河: 手牌の下の段のさらに下（台のいちばん下）。見出しを左に、牌は横に並べて折り返す。
    1 段分の高さを最初から確保し、2 段目は下へ伸びる（手牌は動かない）。2 段を超えたら枠の中で最新（下）までスクロールする */
 .dock-kawa {
-  --kawa-w: 18px;
+  --kawa-w: var(--sub-w);
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -1256,10 +1252,8 @@ export default {
   overflow-y: auto;
   overscroll-behavior: contain;
 }
-/* 広い画面: 24 枚でも 1 段に収まるので、牌を小さくして段を低くする（その分を候補の欄に） */
 @media (min-width: 760px) {
   .dock-kawa {
-    --kawa-w: 16px;
     padding-bottom: 6px;
   }
 }
@@ -1470,15 +1464,11 @@ export default {
   grid-template-columns: 1fr;
 }
 .haipai {
-  --tile-w: 22px;
   gap: 1px;
 }
 @media (min-width: 700px) {
   .kv > .kv-wide {
     grid-template-columns: 7.5em minmax(0, 1fr);
-  }
-  .haipai {
-    --tile-w: 30px;
   }
 }
 .kv-compact {
@@ -1522,7 +1512,6 @@ export default {
 .log {
   display: grid;
   gap: 8px;
-  --tile-w: 22px;
 }
 .log-head {
   display: flex;
@@ -1573,8 +1562,12 @@ export default {
     padding-block: 8px;
     gap: 8px;
   }
-  .dock {
+  /* 手牌以外の牌は手牌の 85%（34px）にすると候補が 2 行しか見えないので、ここだけ前の大きさに近い 18px のまま */
+  .ako {
     --hand-max: 40px;
+    --sub-w: 18px;
+  }
+  .dock {
     padding-top: 6px;
     padding-bottom: 0;
   }
@@ -1597,22 +1590,15 @@ export default {
     margin-top: 2px;
     padding-bottom: 0;
   }
-  .dock-dora {
-    --tile-w: 18px;
-  }
   .dock-actions .btn-small {
     min-height: 26px;
     padding-block: 1px;
   }
   .dock-kawa {
-    --kawa-w: 16px;
     padding-bottom: 4px;
   }
   .prev-line {
     min-height: 28px;
-  }
-  .prev-pair {
-    --tile-w: 18px;
   }
   .prev-detail {
     margin-top: 4px;
