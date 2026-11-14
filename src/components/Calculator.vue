@@ -1199,11 +1199,40 @@ export default {
 }
 .dock-bar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 4px 14px;
   min-height: 34px;
   margin-top: 4px;
   padding: 0 4px;
+}
+/* スマホの縦（360〜459px）: 巡目・ドラ表示・場と自風・ボタンを 1 行に収めるよう詰める（収まらなければ折り返す） */
+@media (max-width: 459px) {
+  .dock-bar {
+    column-gap: 8px;
+  }
+  .dock-actions {
+    gap: 4px;
+  }
+  .dock-actions .btn-small {
+    padding-inline: 8px;
+    font-size: 0.76rem;
+  }
+}
+@media (max-width: 379px) {
+  .dock-bar {
+    column-gap: 6px;
+    padding-inline: 0;
+  }
+  .dock-dora {
+    gap: 4px;
+  }
+  .dock-wind {
+    font-size: 0.8rem;
+  }
+  .dock-actions .btn-small {
+    padding-inline: 6px;
+  }
 }
 /* ドラ表示（手牌の判断に使うので、手牌の近くに） */
 .dock-dora {
@@ -1377,8 +1406,9 @@ export default {
   }
 }
 /* 広い画面: 手牌の下の段を 1 行に（巡目・ドラ表示 | 最善に対するゲージ | ボタン）。
-   候補の欄の高さを減らさないよう、前の巡目の行と同じくらいの高さに収める */
-@media (min-width: 760px) {
+   候補の欄の高さを減らさないよう、前の巡目の行と同じくらいの高さに収める。
+   幅 760〜1023px ではゲージの名前と値が重なるので、縦に余裕があれば狭い画面と同じ 2 段にする（縦の短い画面は下で詰めて 1 行） */
+@media (min-width: 1024px), (min-width: 760px) and (max-height: 500px) {
   .dock-head {
     display: flex;
     align-items: center;
@@ -1433,6 +1463,26 @@ export default {
   }
   .dock .meter {
     height: 4px;
+  }
+}
+/* 縦の短い画面で幅 760〜1023px: 1 行のまま、ゲージの見出しを隠して名前と値が重ならないようにする（読み上げには残す） */
+@media (min-width: 760px) and (max-width: 1023px) and (max-height: 500px) {
+  .dock-head {
+    gap: 10px;
+  }
+  .gauges-cap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .gauges {
+    gap: 10px;
+  }
+  .gauge-value {
+    font-size: 0.95rem;
   }
 }
 @media (min-width: 1200px) {
