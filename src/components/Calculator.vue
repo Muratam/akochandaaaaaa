@@ -160,22 +160,8 @@
             </button>
           </div>
 
-          <div v-if="ban.turn > 1" class="panel panel-tight prev">
-            <!-- 自分の打牌と最善の打牌の差の 1 行と、候補の表（常に表示する。表はこの欄の中だけでスクロールする） -->
-            <div class="prev-line">
-              <h2 class="prev-title">
-                前の一手<span class="prev-turn">{{ ban.turn - 1 }}巡目</span>
-              </h2>
-              <span class="prev-pair">
-                <span class="prev-who">自分</span>
-                <span class="prev-tile is-mine"><TileImage :tile="last_discard" /></span>
-                <template v-if="prev_summary && !prev_summary.same">
-                  <span class="prev-who">最善</span>
-                  <span class="prev-tile"><TileImage :tile="prev_summary.best_tile" /></span>
-                </template>
-              </span>
-              <span :class="['prev-diff', 'num', prev_diff_class]">{{ prev_diff_text }}</span>
-            </div>
+          <div v-if="ban.turn > 1" class="panel panel-tight prev" aria-label="前の一手の候補">
+            <!-- 前の一手の候補の表（常に表示する。表はこの欄の中だけでスクロールする） -->
             <div ref="cands" class="prev-detail">
               <div class="prev-move">
                 <span class="prev-discard">
@@ -415,7 +401,6 @@ import {
   mergeResults,
   scoreDiscard,
 } from "@/game.js";
-import { discardSummary } from "@/summary.js";
 
 // requestIdleCallback 未対応ブラウザ (古い Safari 等) 向けのフォールバック
 const requestIdle =
@@ -536,26 +521,6 @@ export default {
     last_discard() {
       const kawa = this.ban.kawa_indicators;
       return kawa.length > 0 ? kawa[kawa.length - 1] : -1;
-    },
-    // 前の一手の要約（最善の打牌と自分の打牌）
-    prev_summary() {
-      if (this.ban.turn <= 1) return null;
-      return discardSummary(this.ban.pre_result, this.last_discard);
-    },
-    prev_diff_text() {
-      const s = this.prev_summary;
-      if (!s) return "";
-      if (s.kind === "req") {
-        if (s.same) return `最善 受入${s.best_value}`;
-        return `受入${s.my_value ?? "—"}/${s.best_value}`;
-      }
-      if (s.same) return "最善";
-      return `-${this.ban.expected_current_lost_score_abs.toFixed(0)}点`;
-    },
-    prev_diff_class() {
-      const s = this.prev_summary;
-      if (!s) return null;
-      return s.same ? "is-good" : "is-bad";
     },
     // 手牌の枚数
     n_hand_tiles() {
@@ -1092,7 +1057,7 @@ export default {
   font-size: 0.86rem;
 }
 
-/* 前の一手: 自分と最善の打牌・差の 1 行と、候補の表。欄は右の列（狭い画面では残りの高さ）いっぱいで、表だけ中でスクロールする */
+/* 前の一手の候補の表。欄は右の列（狭い画面では残りの高さ）いっぱいで、表だけ中でスクロールする */
 .prev {
   flex: 1;
   min-height: 0;
@@ -1100,65 +1065,12 @@ export default {
   flex-direction: column;
   container-type: inline-size;
 }
-.prev-line {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px 10px;
-  min-height: 34px;
-}
-.prev-title {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  line-height: 1.25;
-  white-space: nowrap;
-}
-.prev-turn {
-  font-size: 0.72rem;
-  font-weight: 400;
-  color: var(--ink-soft);
-}
-.prev-pair {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-.prev-who {
-  font-size: 0.72rem;
-  color: var(--ink-soft);
-  white-space: nowrap;
-}
-.prev-who + .prev-tile {
-  margin-right: 3px;
-}
-.prev-tile {
-  padding: 1px;
-  border-radius: 3px;
-}
-.prev-tile.is-mine {
-  background: var(--accent-soft);
-  box-shadow: inset 0 0 0 1px var(--accent);
-}
-.prev-diff {
-  margin-left: auto;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.prev-diff.is-good {
-  color: var(--ok);
-}
-.prev-diff.is-bad {
-  color: var(--bad);
-}
 /* 候補の表のスクロール枠（見出しの行は上に留まる） */
 .prev-detail {
   flex: 1;
   min-height: 0;
-  margin: 8px -14px 0;
+  margin: 0 -14px;
   padding: 0 8px;
-  border-top: 1px solid var(--line);
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -1188,14 +1100,16 @@ export default {
   gap: 1px;
 }
 
-/* ---- 上の手牌の台（いつも見える。中身の枠の外なので、中身が伸びても動かない） ---- */
+/* ---- 上の手牌の台（いつも見える。中身の枠の外なので、中身が伸びても動かない）。
+   色と線はパネルと同じ。上の帯との間はパネルどうしの間（.board-body の 10px）と同じだけ空ける（T349） ---- */
 .dock {
   flex: none;
   z-index: 5;
   width: 100%;
+  margin-top: 10px;
   padding: 8px 12px 4px;
-  background: var(--bg-side);
-  border-bottom: 1px solid var(--line-strong);
+  background: var(--surface);
+  border-block: 1px solid var(--line);
 }
 .dock-bar {
   display: flex;
@@ -1398,11 +1312,10 @@ export default {
   .dock {
     width: calc(100% - 2 * var(--gutter));
     max-width: calc(var(--col) - 2 * var(--gutter));
-    margin: 0 auto;
+    margin: 10px auto 0;
     padding-inline: 16px;
-    border: 1px solid var(--line-strong);
-    border-top: 0;
-    border-radius: 0 0 var(--radius) var(--radius);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
   }
 }
 /* 縦の短い横長の画面（スマホの横など）: 手牌の下の段を 1 行に（巡目・ドラ表示 | 最善に対するゲージ | ボタン）。
@@ -1618,6 +1531,7 @@ export default {
     --sub-w: 18px;
   }
   .dock {
+    margin-top: 6px;
     padding-top: 6px;
     padding-bottom: 0;
   }
@@ -1646,12 +1560,6 @@ export default {
   }
   .dock-kawa {
     padding-bottom: 4px;
-  }
-  .prev-line {
-    min-height: 28px;
-  }
-  .prev-detail {
-    margin-top: 4px;
   }
 }
 </style>
