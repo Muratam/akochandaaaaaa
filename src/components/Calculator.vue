@@ -193,7 +193,6 @@
       aria-labelledby="tab-1"
     >
       <div class="panel">
-        <div class="panel-head"><h2>この盤面</h2></div>
         <dl class="kv">
           <div class="kv-wide">
             <dt>配牌</dt>
