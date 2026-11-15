@@ -31,7 +31,7 @@
       aria-labelledby="tab-0"
     >
       <!-- 手牌のまとまりは上の帯のすぐ下に置き、その下を候補に充てる（視線を上の 1 か所にまとめる）。
-           並びは下に置いていたときの鏡写し: 手牌 → 巡目・ドラ表示・ゲージ → 河。伸びる河をいちばん下にして、手牌の位置を動かさない -->
+           並びは下に置いていたときの鏡写し: 手牌 →（終局したら結果）→ 巡目・ドラ表示・ゲージ → 河。伸びる河をいちばん下にして、手牌の位置を動かさない -->
       <div class="dock" :aria-busy="is_calculating ? 'true' : 'false'">
         <HandAndMeldedBlocks
           @remove-tile="next_tile"
@@ -41,6 +41,23 @@
           :disabled="is_calculating || is_finished"
           size="lg"
         />
+        <!-- 結果（18巡目か和了で終わったとき）: 手牌の牌のすぐ下、巡目の段の上（11-15 murata） -->
+        <div v-if="is_finished" class="panel finish">
+          <p class="finish-text"><span class="finish-label">結果</span>{{ state_info_without_config }}</p>
+          <div class="actions">
+            <button type="button" class="btn btn-primary btn-small" @click="set_random_hand">
+              次の盤面へ
+            </button>
+            <TwitterShare
+              :url="state_url"
+              hashtags="牌効率チェッカー"
+              :title="state_info"
+              class="btn"
+            >
+              つぶやく
+            </TwitterShare>
+          </div>
+        </div>
         <!-- 手牌のすぐ下: 巡目・ドラ表示・場と自風・最善に対するゲージ（手牌を見ながら使う情報を手牌の近くに）。
              「巡目・ドラ表示・場と自風・ボタン」と「ゲージ」の 2 段（PC もスマホと同じ。縦の短い横長の画面だけ 1 行） -->
         <div class="dock-head">
@@ -134,23 +151,6 @@
       <!-- ページ全体はスクロールしない。上の台より下の高さは全部、前の一手の候補に充てる（場・自風・河は上の台に置く） -->
       <div ref="body" class="board-body">
         <div class="board-cands">
-          <div v-if="is_finished" class="panel finish">
-            <p class="finish-text"><span class="finish-label">結果</span>{{ state_info_without_config }}</p>
-            <div class="actions">
-              <button type="button" class="btn btn-primary btn-small" @click="set_random_hand">
-                次の盤面へ
-              </button>
-              <TwitterShare
-                :url="state_url"
-                hashtags="牌効率チェッカー"
-                :title="state_info"
-                class="btn"
-              >
-                つぶやく
-              </TwitterShare>
-            </div>
-          </div>
-
           <div v-if="ban.turn <= 1 && !is_finished" class="panel start">
             <p class="quiet">
               上の手牌から、捨てる牌を押す。押すたびに最善の打牌と比較して採点し、ここに候補を並べる。
@@ -841,13 +841,6 @@ export default {
         if (kawa) kawa.scrollTop = kawa.scrollHeight;
       });
     },
-    // 終局したら結果が見えるよう、中の枠を上端へ
-    is_finished(v) {
-      if (!v) return;
-      this.$nextTick(() => {
-        if (this.$refs.body) this.$refs.body.scrollTop = 0;
-      });
-    },
   },
   mounted() {
     this.set_random_hand();
@@ -1021,14 +1014,14 @@ export default {
   margin-top: 12px;
 }
 
-/* 結果（18巡目か和了で終わったとき）: 候補の上に 1 段で */
+/* 結果（18巡目か和了で終わったとき）: 上の台の中、手牌の牌のすぐ下・巡目の段の上に 1 段で */
 .finish {
   flex: none;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 6px 12px;
-  margin-bottom: 10px;
+  margin-top: 8px;
   border-color: var(--accent);
   box-shadow: inset 3px 0 0 var(--accent);
 }
@@ -1494,11 +1487,6 @@ export default {
   gap: 6px;
   margin: 0 -10px -6px;
 }
-@media (min-width: 700px) {
-  .logs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
 
 /* ---- 遊び方 ---- */
 .howto ul {
@@ -1546,7 +1534,7 @@ export default {
     padding: 6px 12px 8px;
   }
   .finish {
-    margin-bottom: 8px;
+    margin-top: 6px;
   }
   .dock-head {
     min-height: 30px;
